@@ -152,83 +152,95 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
   Widget _buildIdentityPanel(BuildContext context, Dog dog, double padding) {
     final isTablet = Responsive.isTablet(context);
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(padding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            dog.registeredName,
-            style: TextStyle(
-              fontSize: isTablet ? 24.0 : 20.0,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.secondaryColor,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(padding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dog.registeredName,
+                  style: TextStyle(
+                    fontSize: isTablet ? 24.0 : 20.0,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.secondaryColor,
+                  ),
+                ),
+                SizedBox(height: padding * 0.25),
+                Text(
+                  'Call Name: ${dog.callName}',
+                  style: TextStyle(
+                    fontSize: isTablet ? 16.0 : 14.0,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                SizedBox(height: padding),
+                Wrap(
+                  spacing: padding,
+                  runSpacing: padding * 0.5,
+                  children: [
+                    _buildDetailChip('Sex', dog.sex, isTablet),
+                    if (dog.microchipNumber != null)
+                      _buildDetailChip('Microchip', dog.microchipNumber!, isTablet),
+                    if (dog.dateOfBirth != null)
+                      _buildDetailChip('DOB', dog.dateOfBirth.toString().split(' ')[0], isTablet),
+                    if (dog.colorMarkings != null)
+                      _buildDetailChip('Color', dog.colorMarkings!, isTablet),
+                    if (dog.registerType != null)
+                      _buildDetailChip('Register', dog.registerType!, isTablet),
+                    if (dog.appraisalScore != null)
+                      _buildDetailChip('Appraisal', dog.appraisalScore.toString(), isTablet),
+                    if (dog.inbreedingCoefficient != null)
+                      _buildDetailChip('COI', dog.inbreedingCoefficient.toString(), isTablet),
+                  ],
+                ),
+              ],
             ),
           ),
-          SizedBox(height: padding * 0.25),
-          Text(
-            'Call Name: ${dog.callName}',
-            style: TextStyle(
-              fontSize: isTablet ? 16.0 : 14.0,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          SizedBox(height: padding),
-          Wrap(
-            spacing: padding,
-            runSpacing: padding * 0.5,
-            children: [
-              _buildDetailChip('Sex', dog.sex, isTablet),
-              if (dog.microchipNumber != null)
-                _buildDetailChip('Microchip', dog.microchipNumber!, isTablet),
-              if (dog.dateOfBirth != null)
-                _buildDetailChip('DOB', dog.dateOfBirth.toString().split(' ')[0], isTablet),
-              if (dog.colorMarkings != null)
-                _buildDetailChip('Color', dog.colorMarkings!, isTablet),
-              if (dog.registerType != null)
-                _buildDetailChip('Register', dog.registerType!, isTablet),
-              if (dog.appraisalScore != null)
-                _buildDetailChip('Appraisal', dog.appraisalScore.toString(), isTablet),
-              if (dog.inbreedingCoefficient != null)
-                _buildDetailChip('COI', dog.inbreedingCoefficient.toString(), isTablet),
-            ],
-          ),
-          SizedBox(height: padding),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _generatingPdf ? null : () => _generateAndPrintCertificate(dog),
-                  icon: _generatingPdf
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.print),
-                  label: const Text('Print Certificate'),
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(
-                      vertical: isTablet ? 16.0 : 12.0,
+        ),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(padding, 0, padding, padding),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _generatingPdf ? null : () => _generateAndPrintCertificate(dog),
+                    icon: _generatingPdf
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.print),
+                    label: const Text('Print Certificate'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        vertical: isTablet ? 16.0 : 12.0,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(width: padding),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _generatingPdf ? null : () => _generateAndShareCertificate(dog),
-                  icon: _generatingPdf
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.share),
-                  label: const Text('Share'),
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(
-                      vertical: isTablet ? 16.0 : 12.0,
+                SizedBox(width: padding),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _generatingPdf ? null : () => _generateAndShareCertificate(dog),
+                    icon: _generatingPdf
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.share),
+                    label: const Text('Share'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        vertical: isTablet ? 16.0 : 12.0,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
