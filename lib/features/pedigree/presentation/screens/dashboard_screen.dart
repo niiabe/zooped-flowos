@@ -38,7 +38,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Image.asset(
-          'assets/images/ZooPed2_appbar.png',
+          'assets/images/AppBar.png',
           height: 48,
           cacheHeight: 96,
           fit: BoxFit.contain,
