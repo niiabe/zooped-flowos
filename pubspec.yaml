@@ -70,17 +70,17 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/images/ZooPed2.png"
-  adaptive_icon_foreground: "assets/images/ZooPed2.png"
+  image_path: "assets/images/logo.png"
+  adaptive_icon_foreground: "assets/images/logo.png"
   adaptive_icon_background: "#FFFFFF"
 
 # Splash Screen Configuration (Android Only)
 flutter_native_splash:
   color: "#FFFFFF"
-  image: assets/images/ZooPed2_splash.png
+  image: assets/images/logo_splash.png
   android_12:
     color: "#FFFFFF"
-    image: assets/images/ZooPed2_splash.png
+    image: assets/images/logo_splash.png
   android: true
   ios: false
   fullscreen: true
