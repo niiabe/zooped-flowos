@@ -6,6 +6,7 @@ import '../../../../core/utils/responsive.dart';
 import '../../domain/entities/dog.dart';
 import '../providers/pedigree_providers.dart';
 import '../providers/shared_providers.dart';
+import 'dashboard_screen.dart';
 
 class AddDogScreen extends ConsumerStatefulWidget {
   const AddDogScreen({super.key});
@@ -280,6 +281,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
       await insertUseCase(dog);
 
       if (mounted) {
+        ref.invalidate(dogsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Dog added successfully')),
         );

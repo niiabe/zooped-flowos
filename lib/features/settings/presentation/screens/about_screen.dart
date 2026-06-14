@@ -44,9 +44,8 @@ class AboutScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/images/AppBar.png',
+                  'assets/images/appbarlogo.png',
                   height: isTablet ? 100.0 : 80.0,
-                  cacheHeight: 200,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => const Text(
                     'ZooPed',

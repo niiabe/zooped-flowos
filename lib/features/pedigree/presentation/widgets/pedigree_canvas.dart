@@ -23,6 +23,7 @@ class PedigreeCanvas extends StatelessWidget {
       boundaryMargin: const EdgeInsets.all(50.0),
       minScale: 0.3,
       maxScale: 2.5,
+      clipBehavior: Clip.hardEdge,
       child: Padding(
         padding: EdgeInsets.all(spacing),
         child: Row(

@@ -7,8 +7,12 @@ import '../widgets/dog_list_item.dart';
 
 final _searchQueryProvider = StateProvider<String>((ref) => '');
 
-final _dogsProvider = FutureProvider.autoDispose<List>((ref) async {
+final dogsProvider = FutureProvider.autoDispose<List>((ref) async {
   final query = ref.watch(_searchQueryProvider);
+  if (query.isEmpty) {
+    final useCase = ref.watch(getAllDogsUseCaseProvider);
+    return await useCase();
+  }
   final useCase = ref.watch(searchDogsUseCaseProvider);
   return await useCase(query);
 });
@@ -31,16 +35,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dogsAsync = ref.watch(_dogsProvider);
+    final dogsAsync = ref.watch(dogsProvider);
     final padding = Responsive.padding(context);
     final isTablet = Responsive.isTablet(context);
 
     return Scaffold(
       appBar: AppBar(
         title: Image.asset(
-          'assets/images/AppBar.png',
-          height: 48,
-          cacheHeight: 96,
+          'assets/images/appbarlogo.png',
+          height: 36,
           fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) => const Text('ZooPed'),
         ),
@@ -87,7 +90,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Text('Error: $e'),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.invalidate(_dogsProvider),
+                      onPressed: () => ref.invalidate(dogsProvider),
                       child: const Text('Retry'),
                     ),
                   ],

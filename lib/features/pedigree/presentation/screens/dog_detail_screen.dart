@@ -80,13 +80,14 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
 
           return Column(
             children: [
-              Expanded(
-                flex: 1,
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.45,
+                ),
                 child: _buildIdentityPanel(context, dog, padding),
               ),
               const Divider(height: 1),
               Expanded(
-                flex: 2,
                 child: PedigreeCanvas(
                   rootDog: dog,
                   onDogTap: (selectedDog) {

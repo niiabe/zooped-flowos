@@ -3,6 +3,7 @@ import '../../../../core/database/app_database.dart';
 import '../../data/repositories/pedigree_repository_impl.dart';
 import '../../domain/repositories/pedigree_repository.dart';
 import '../../domain/use_cases/search_dogs_use_case.dart';
+import '../../domain/use_cases/get_all_dogs_use_case.dart';
 import '../../domain/use_cases/get_dog_by_id_use_case.dart';
 import '../../domain/use_cases/insert_dog_use_case.dart';
 import '../../domain/use_cases/update_dog_use_case.dart';
@@ -29,6 +30,11 @@ final pedigreeRepositoryProvider = Provider<PedigreeRepository>((ref) {
 final searchDogsUseCaseProvider = Provider<SearchDogsUseCase>((ref) {
   final repository = ref.watch(pedigreeRepositoryProvider);
   return SearchDogsUseCase(repository);
+});
+
+final getAllDogsUseCaseProvider = Provider<GetAllDogsUseCase>((ref) {
+  final repository = ref.watch(pedigreeRepositoryProvider);
+  return GetAllDogsUseCase(repository);
 });
 
 final getDogByIdUseCaseProvider = Provider<GetDogByIdUseCase>((ref) {

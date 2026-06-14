@@ -7,6 +7,7 @@ import '../../domain/entities/dog.dart';
 import '../../domain/entities/litter.dart';
 import '../providers/pedigree_providers.dart';
 import '../providers/shared_providers.dart';
+import 'dashboard_screen.dart';
 
 class LitterFormScreen extends ConsumerStatefulWidget {
   const LitterFormScreen({super.key});
@@ -532,6 +533,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
       }
 
       if (mounted) {
+        ref.invalidate(dogsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Litter registered successfully')),
         );
