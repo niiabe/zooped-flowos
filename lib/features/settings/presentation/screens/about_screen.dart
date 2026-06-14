@@ -6,6 +6,26 @@ import '../../../../core/utils/responsive.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
+  static const _changelog = [
+    (
+      version: '1.0.0',
+      date: '2026-06-14',
+      entries: [
+        'Dog identity management with full profile fields',
+        'Interactive 3-generation pedigree tree with tap-to-navigate',
+        '5-generation PDF certificate generation and sharing',
+        'Litter tracking with 3-step wizard',
+        'Puppy auto-create with parent references',
+        'Custom kennel branding and logo upload',
+        'CSV export and import from app documents',
+        'Logo-driven theme (Green + Charcoal)',
+        'Responsive design for phones and tablets',
+        'About screen with developer info',
+        'Offline-first SQLite storage via Drift',
+      ],
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final padding = Responsive.padding(context);
@@ -86,18 +106,103 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const Divider(),
                 SizedBox(height: padding * 2),
+                _buildChangelogSection(padding, isTablet),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChangelogSection(double padding, bool isTablet) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.history, size: 20, color: AppTheme.primaryColor),
+            SizedBox(width: isTablet ? 12 : 8),
+            Text(
+              'Changelog',
+              style: TextStyle(
+                fontSize: isTablet ? 20.0 : 18.0,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.secondaryColor,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: padding),
+        ..._changelog.map((release) => _buildReleaseEntry(release, padding, isTablet)),
+      ],
+    );
+  }
+
+  Widget _buildReleaseEntry(
+      ({String version, String date, List<String> entries}) release,
+      double padding,
+      bool isTablet) {
+    return Card(
+      margin: EdgeInsets.only(bottom: padding),
+      child: Padding(
+        padding: EdgeInsets.all(padding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'v${release.version}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Text(
-                  'A Flutter Android application for tracking\ndog pedigrees with professional\ncertificate generation.',
-                  textAlign: TextAlign.center,
+                  release.date,
                   style: TextStyle(
-                    fontSize: isTablet ? 14.0 : 13.0,
-                    color: Colors.grey.shade600,
-                    height: 1.5,
+                    fontSize: isTablet ? 13.0 : 12.0,
+                    color: Colors.grey.shade500,
                   ),
                 ),
               ],
             ),
-          ),
+            SizedBox(height: padding * 0.75),
+            ...release.entries.map((entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '\u2022 ',
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          entry,
+                          style: TextStyle(
+                            fontSize: isTablet ? 14.0 : 13.0,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+          ],
         ),
       ),
     );
@@ -131,8 +236,9 @@ class AboutScreen extends StatelessWidget {
                   fontSize: isTablet ? 16.0 : 15.0,
                   color: onTap != null ? AppTheme.primaryColor : Colors.black87,
                   fontWeight: FontWeight.w500,
-                  decoration:
-                      onTap != null ? TextDecoration.underline : TextDecoration.none,
+                  decoration: onTap != null
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
                 ),
               ),
             ],
@@ -144,7 +250,14 @@ class AboutScreen extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(8), child: Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: row));
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: row,
+        ),
+      );
     }
     return row;
   }

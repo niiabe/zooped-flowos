@@ -1,14 +1,16 @@
 <p align="center">
-  <img src="assets/images/ZooPed2.png" alt="ZooPed Logo" width="150"/>
+  <img src="assets/images/AppBar.png" alt="ZooPed Logo" width="200"/>
 </p>
 
 # ZooPed - Dog Pedigree Tracker
 
 A Flutter Android application for tracking dog pedigrees, designed for professional breeders and kennel clubs.
 
+**Package:** `com.zooped.niiabe` | **Version:** 1.0.0 | **License:** Private
+
 ## Platform
 
-- **Android Only** - Currently built exclusively for Android devices
+- **Android Only** - Built exclusively for Android devices
 - **Responsive Design** - Adapts seamlessly to phones and tablets of all sizes
 
 ## Features
@@ -18,8 +20,14 @@ A Flutter Android application for tracking dog pedigrees, designed for professio
 - **5-Generation PDF Export** - Generate professional A4 landscape pedigree certificates for printing or sharing
 - **Litter Tracking** - Record matings, whelping dates, and auto-create puppy profiles with inherited parentage
 - **Custom Kennel Branding** - Upload kennel logo and configure breeder profile (logo-driven theme)
-- **CSV Backup & Import** - Export and import all dog/litter data as CSV files from the app's documents directory
+- **CSV Backup & Import** - Export and import all dog/litter data as CSV files from the app documents directory
 - **Offline-First** - All data stored locally using SQLite via Drift
+
+## Screenshots
+
+| Dashboard | Pedigree Tree | Litter Form | Settings |
+|-----------|--------------|-------------|----------|
+| Search, dog list, quick-add | 3-gen interactive canvas | 3-step wizard | Profile, backup, branding |
 
 ## Tech Stack
 
@@ -32,13 +40,14 @@ A Flutter Android application for tracking dog pedigrees, designed for professio
 | Database | Drift (over SQLite) |
 | PDF Generation | pdf + printing |
 | Image Picker | image_picker |
+| URL Launcher | url_launcher |
 | App Icon | flutter_launcher_icons |
 | Splash Screen | flutter_native_splash |
 
 ## Branding
 
 Logo-derived theme colors:
-- **Primary** - Green (#3CB91A) from ZooPed2 logo
+- **Primary** - Green (#3CB91A) from ZooPed logo
 - **Secondary** - Dark Charcoal (#3D3D3D)
 - **Background** - White
 
@@ -95,7 +104,7 @@ lib/
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/niiabe/zooped-flowos.git
 
 # Navigate to project directory
 cd zooped
@@ -114,6 +123,16 @@ flutter run
 dart run build_runner build --delete-conflicting-outputs
 ```
 
+### Build APK
+
+```bash
+# Debug APK
+flutter build apk --debug
+
+# Release APK
+flutter build apk --release
+```
+
 ## Database Schema
 
 ### Tables
@@ -128,6 +147,19 @@ dart run build_runner build --delete-conflicting-outputs
 2. **Dog Detail** - Identity card + interactive 3-gen pedigree canvas with PDF export/share
 3. **Litter Form** - 3-step wizard (parents -> dates -> puppy roster)
 4. **Settings** - Kennel profile, logo upload, CSV backup/import
+5. **About** - Developer info, links, in-app changelog
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
+
+## Developer
+
+- **NiiAbe** - [niiabe.github.io](https://niiabe.github.io)
+
+## Repository
+
+[github.com/niiabe/zooped-flowos](https://github.com/niiabe/zooped-flowos)
 
 ## License
 
