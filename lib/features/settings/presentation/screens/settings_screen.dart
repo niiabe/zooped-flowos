@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -97,6 +98,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _buildBackupSection(padding),
         SizedBox(height: padding * 2),
         _buildSaveButton(padding),
+        SizedBox(height: padding * 2),
+        _buildAboutSection(padding),
       ],
     );
   }
@@ -125,6 +128,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildBackupSection(padding),
               SizedBox(height: padding * 2),
               _buildSaveButton(padding),
+              SizedBox(height: padding * 2),
+              _buildAboutSection(padding),
             ],
           ),
         ),
@@ -318,6 +323,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         child: const Text('Save Settings'),
+      ),
+    );
+  }
+
+  Widget _buildAboutSection(double padding) {
+    return ListTile(
+      leading: const Icon(Icons.info_outline),
+      title: const Text('About ZooPed'),
+      subtitle: const Text('Version 1.0.0'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => context.push('/about'),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
       ),
     );
   }

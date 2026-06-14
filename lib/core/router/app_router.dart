@@ -5,6 +5,7 @@ import '../../features/pedigree/presentation/screens/dog_detail_screen.dart';
 import '../../features/pedigree/presentation/screens/add_dog_screen.dart';
 import '../../features/pedigree/presentation/screens/litter_form_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/about_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -45,6 +46,12 @@ class AppRouter {
         path: '/settings',
         builder: (BuildContext context, GoRouterState state) {
           return const SettingsScreen();
+        },
+      ),
+      GoRoute(
+        path: '/about',
+        builder: (BuildContext context, GoRouterState state) {
+          return const AboutScreen();
         },
       ),
     ],

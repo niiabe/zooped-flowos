@@ -1,4 +1,4 @@
-package com.example.zooped
+package com.zooped.niiabe
 
 import io.flutter.embedding.android.FlutterActivity
 
