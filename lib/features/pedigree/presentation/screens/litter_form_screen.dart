@@ -1,6 +1,8 @@
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../domain/entities/dog.dart';
@@ -77,7 +79,17 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
                     Expanded(
                       child: siresAsync.when(
                         loading: () => const LinearProgressIndicator(),
-                        error: (e, _) => Text('Error loading sires: $e'),
+                        error: (e, _) => Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Error loading sires: $e'),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: () => ref.invalidate(siresProvider),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
                         data: (sires) => _buildSireDropdown(sires),
                       ),
                     ),
@@ -85,7 +97,17 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
                     Expanded(
                       child: damsAsync.when(
                         loading: () => const LinearProgressIndicator(),
-                        error: (e, _) => Text('Error loading dams: $e'),
+                        error: (e, _) => Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Error loading dams: $e'),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: () => ref.invalidate(damsProvider),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
                         data: (dams) => _buildDamDropdown(dams),
                       ),
                     ),
@@ -96,13 +118,33 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
                   children: [
                     siresAsync.when(
                       loading: () => const LinearProgressIndicator(),
-                      error: (e, _) => Text('Error loading sires: $e'),
+                      error: (e, _) => Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Error loading sires: $e'),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () => ref.invalidate(siresProvider),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
                       data: (sires) => _buildSireDropdown(sires),
                     ),
                     SizedBox(height: padding),
                     damsAsync.when(
                       loading: () => const LinearProgressIndicator(),
-                      error: (e, _) => Text('Error loading dams: $e'),
+                      error: (e, _) => Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Error loading dams: $e'),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () => ref.invalidate(damsProvider),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
                       data: (dams) => _buildDamDropdown(dams),
                     ),
                   ],
@@ -303,7 +345,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
         if (date != null) {
           setState(() {
             _matingDate = date;
-            _matingDateController.text = date.toString().split(' ')[0];
+            _matingDateController.text = DateFormat('yyyy-MM-dd').format(date);
           });
         }
       },
@@ -329,7 +371,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
         if (date != null) {
           setState(() {
             _whelpingDate = date;
-            _whelpingDateController.text = date.toString().split(' ')[0];
+            _whelpingDateController.text = DateFormat('yyyy-MM-dd').format(date);
           });
         }
       },
@@ -405,6 +447,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
     final padding = Responsive.padding(context);
 
     return Card(
+      key: ValueKey('puppy_entry_$index'),
       margin: EdgeInsets.only(bottom: padding * 0.5),
       child: Padding(
         padding: EdgeInsets.all(padding * 0.75),
@@ -487,8 +530,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      final createUseCase = ref.read(createLitterUseCaseProvider);
-      final insertDogUseCase = ref.read(insertDogUseCaseProvider);
+      final repo = ref.read(pedigreeRepositoryProvider);
 
       final litter = Litter(
         id: 0,
@@ -501,8 +543,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
         notes: _notesController.text.isEmpty ? null : _notesController.text,
       );
 
-      final litterId = await createUseCase(litter);
-
+      final puppies = <Dog>[];
       for (final entry in _puppyEntries) {
         final callName = (entry['callName'] as String?)?.trim() ?? '';
         if (callName.isEmpty) continue;
@@ -510,27 +551,20 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
         final sex = entry['sex'] as String;
         final microchip = (entry['microchip'] as String?)?.trim();
 
-        final sire = _selectedSireId != null
-            ? await ref.read(getDogByIdUseCaseProvider)(_selectedSireId!)
-            : null;
-        final dam = _selectedDamId != null
-            ? await ref.read(getDogByIdUseCaseProvider)(_selectedDamId!)
-            : null;
-
-        final puppy = Dog(
+        puppies.add(Dog(
           id: 0,
           registeredName: callName,
           callName: callName,
           sex: sex,
           microchipNumber: microchip?.isEmpty == true ? null : microchip,
-          sire: sire,
-          dam: dam,
-          litterId: litterId,
+          sire: null,
+          dam: null,
+          litterId: 0,
           createdAt: DateTime.now(),
-        );
-
-        await insertDogUseCase(puppy);
+        ));
       }
+
+      await repo.createLitterWithPuppies(litter, puppies);
 
       if (mounted) {
         ref.invalidate(dogsProvider);
@@ -538,6 +572,15 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
           const SnackBar(content: Text('Litter registered successfully')),
         );
         context.pop();
+      }
+    } on SqliteException catch (e) {
+      if (mounted) {
+        final message = e.message.contains('UNIQUE')
+            ? 'A dog with this name or microchip already exists'
+            : 'Database error: ${e.message}';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
       }
     } catch (e) {
       if (mounted) {

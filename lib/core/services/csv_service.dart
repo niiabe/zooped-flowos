@@ -73,17 +73,21 @@ class CsvService {
     return file;
   }
 
-  static Future<List<DogsCompanion>> importDogsFromCsv(String filePath) async {
+  static Future<CsvImportResult> importDogsFromCsv(String filePath) async {
     final file = File(filePath);
     final csvString = await file.readAsString();
     final rows = const CsvToListConverter().convert(csvString);
 
-    if (rows.isEmpty) return [];
+    if (rows.isEmpty) return const CsvImportResult(dogs: []);
 
     final dogs = <DogsCompanion>[];
+    final errors = <String>[];
     for (var i = 1; i < rows.length; i++) {
       final row = rows[i];
-      if (row.length < 15) continue;
+      if (row.length < 15) {
+        errors.add('Row ${i + 1}: insufficient columns (${row.length})');
+        continue;
+      }
 
       try {
         final dog = DogsCompanion.insert(
@@ -106,29 +110,33 @@ class CsvService {
         );
         dogs.add(dog);
       } catch (e) {
-        continue;
+        errors.add('Row ${i + 1}: $e');
       }
     }
 
-    return dogs;
+    return CsvImportResult(dogs: dogs, errors: errors);
   }
 
-  static Future<List<LittersCompanion>> importLittersFromCsv(String filePath) async {
+  static Future<CsvLitterImportResult> importLittersFromCsv(String filePath) async {
     final file = File(filePath);
     final csvString = await file.readAsString();
     final rows = const CsvToListConverter().convert(csvString);
 
-    if (rows.isEmpty) return [];
+    if (rows.isEmpty) return const CsvLitterImportResult(litters: []);
 
     final litters = <LittersCompanion>[];
+    final errors = <String>[];
     for (var i = 1; i < rows.length; i++) {
       final row = rows[i];
-      if (row.length < 8) continue;
+      if (row.length < 8) {
+        errors.add('Row ${i + 1}: insufficient columns (${row.length})');
+        continue;
+      }
 
       try {
         final litter = LittersCompanion.insert(
-          sireId: row[1] as int,
-          damId: row[2] as int,
+          sireId: Value(int.parse(row[1].toString())),
+          damId: Value(int.parse(row[2].toString())),
           whelpingDate: DateTime.parse(row[4].toString()),
           matingDate: Value(row[3].toString().isNotEmpty
               ? DateTime.tryParse(row[3].toString())
@@ -139,11 +147,11 @@ class CsvService {
         );
         litters.add(litter);
       } catch (e) {
-        continue;
+        errors.add('Row ${i + 1}: $e');
       }
     }
 
-    return litters;
+    return CsvLitterImportResult(litters: litters, errors: errors);
   }
 
   static Future<void> shareCsvFile(File csvFile, String type) async {
@@ -161,4 +169,16 @@ class CsvService {
       subject: 'ZooPed - Dogs & Litters Export',
     );
   }
+}
+
+class CsvImportResult {
+  final List<DogsCompanion> dogs;
+  final List<String> errors;
+  const CsvImportResult({required this.dogs, this.errors = const []});
+}
+
+class CsvLitterImportResult {
+  final List<LittersCompanion> litters;
+  final List<String> errors;
+  const CsvLitterImportResult({required this.litters, this.errors = const []});
 }

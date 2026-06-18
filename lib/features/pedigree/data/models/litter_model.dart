@@ -6,8 +6,8 @@ extension LitterMapper on Litter {
   domain.Litter toDomain() {
     return domain.Litter(
       id: id,
-      sireId: sireId,
-      damId: damId,
+      sireId: sireId ?? 0,
+      damId: damId ?? 0,
       matingDate: matingDate,
       whelpingDate: whelpingDate,
       puppiesBornAlive: puppiesBornAlive,
@@ -20,7 +20,7 @@ extension LitterMapper on Litter {
 extension LitterEntityMapper on domain.Litter {
   LittersCompanion toCompanion() {
     return LittersCompanion(
-      id: Value(id),
+      id: id == 0 ? const Value.absent() : Value(id),
       sireId: Value(sireId),
       damId: Value(damId),
       matingDate: Value(matingDate),

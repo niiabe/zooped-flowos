@@ -9,6 +9,9 @@ extension KennelProfileMapper on KennelProfileData {
       kennelName: kennelName,
       breederName: breederName,
       contactInfo: contactInfo,
+      phone: phone,
+      whatsapp: whatsapp,
+      email: email,
       localLogoPath: localLogoPath,
     );
   }
@@ -21,6 +24,9 @@ extension KennelProfileEntityMapper on domain.KennelProfile {
       kennelName: Value(kennelName),
       breederName: Value(breederName),
       contactInfo: Value(contactInfo),
+      phone: Value(phone),
+      whatsapp: Value(whatsapp),
+      email: Value(email),
       localLogoPath: Value(localLogoPath),
     );
   }

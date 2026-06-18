@@ -17,7 +17,9 @@ class Dog {
   final double? inbreedingCoefficient;
   final String? registerType; // 'SP', 'SR', 'B'
   final String? dnaProfileNumber;
+  final String? photoPath;
 
+  final String? saleStatus;
   final String? notes;
   final DateTime createdAt;
 
@@ -36,6 +38,8 @@ class Dog {
     this.inbreedingCoefficient,
     this.registerType,
     this.dnaProfileNumber,
+    this.photoPath,
+    this.saleStatus,
     this.notes,
     required this.createdAt,
   });
@@ -60,6 +64,8 @@ class Dog {
     double? inbreedingCoefficient,
     String? registerType,
     String? dnaProfileNumber,
+    String? photoPath,
+    String? saleStatus,
     String? notes,
     DateTime? createdAt,
   }) {
@@ -78,6 +84,8 @@ class Dog {
       inbreedingCoefficient: inbreedingCoefficient ?? this.inbreedingCoefficient,
       registerType: registerType ?? this.registerType,
       dnaProfileNumber: dnaProfileNumber ?? this.dnaProfileNumber,
+      photoPath: photoPath ?? this.photoPath,
+      saleStatus: saleStatus ?? this.saleStatus,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
     );

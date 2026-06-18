@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
@@ -29,15 +30,19 @@ class DogListItem extends StatelessWidget {
           horizontal: padding,
           vertical: padding * 0.5,
         ),
-        leading: CircleAvatar(
-          radius: isTablet ? 24.0 : 20.0,
-          backgroundColor: dog.sex == 'Male' 
-              ? Colors.blue.shade100 
-              : Colors.pink.shade100,
-          child: Icon(
-            dog.sex == 'Male' ? Icons.male : Icons.female,
-            color: dog.sex == 'Male' ? Colors.blue.shade700 : Colors.pink.shade700,
-            size: isTablet ? 24.0 : 20.0,
+        leading: Hero(
+          tag: 'dog_photo_${dog.id}',
+          child: CircleAvatar(
+            radius: isTablet ? 24.0 : 20.0,
+            backgroundColor: dog.sex == 'Male' ? Colors.blue.shade100 : Colors.pink.shade100,
+            backgroundImage: dog.photoPath != null ? FileImage(File(dog.photoPath!)) : null,
+            child: dog.photoPath == null
+                ? Icon(
+                    dog.sex == 'Male' ? Icons.male : Icons.female,
+                    color: dog.sex == 'Male' ? Colors.blue.shade700 : Colors.pink.shade700,
+                    size: isTablet ? 24.0 : 20.0,
+                  )
+                : null,
           ),
         ),
         title: Column(

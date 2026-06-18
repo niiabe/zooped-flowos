@@ -22,6 +22,8 @@ extension DogMapper on Dog {
       inbreedingCoefficient: inbreedingCoefficient,
       registerType: registerType,
       dnaProfileNumber: dnaProfileNumber,
+      photoPath: photoPath,
+      saleStatus: saleStatus,
       notes: notes,
       createdAt: createdAt,
     );
@@ -29,22 +31,24 @@ extension DogMapper on Dog {
 }
 
 extension DogEntityMapper on domain.Dog {
-  DogsCompanion toCompanion() {
+  DogsCompanion toCompanion({int? overrideSireId, int? overrideDamId}) {
     return DogsCompanion(
-      id: Value(id),
+      id: id == 0 ? const Value.absent() : Value(id),
       registeredName: Value(registeredName),
       callName: Value(callName),
       sex: Value(sex),
       dateOfBirth: Value(dateOfBirth),
       microchipNumber: Value(microchipNumber),
       colorMarkings: Value(colorMarkings),
-      sireId: Value(sire?.id),
-      damId: Value(dam?.id),
+      sireId: Value(overrideSireId ?? sire?.id),
+      damId: Value(overrideDamId ?? dam?.id),
       litterId: Value(litterId),
       appraisalScore: Value(appraisalScore),
       inbreedingCoefficient: Value(inbreedingCoefficient),
       registerType: Value(registerType),
       dnaProfileNumber: Value(dnaProfileNumber),
+      photoPath: Value(photoPath),
+      saleStatus: Value(saleStatus),
       notes: Value(notes),
     );
   }

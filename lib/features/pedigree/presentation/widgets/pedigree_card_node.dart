@@ -28,37 +28,60 @@ class PedigreeCardNode extends StatelessWidget {
     final bool isMobile = Responsive.isMobile(context);
     final bool isTablet = Responsive.isTablet(context);
 
-    // Responsive card dimensions
-    final double cardWidth = isMobile ? 140.0 : (isTablet ? 160.0 : 180.0);
-    final double cardHeight = isMobile ? 70.0 : (isTablet ? 78.0 : 86.0);
-    final double padding = isMobile ? 6.0 : 8.0;
+    // Dynamic width, minimum height
+    final double cardWidth = isMobile ? 150.0 : (isTablet ? 170.0 : 200.0);
+    final double minHeight = isMobile ? 80.0 : (isTablet ? 90.0 : 100.0);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: cardWidth,
-        height: cardHeight,
-        padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.8),
+        constraints: BoxConstraints(minHeight: minHeight),
         decoration: BoxDecoration(
           color: isEmptyPlaceholder ? Colors.transparent : Colors.white,
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(12.0),
           border: Border.all(
-            color: isEmptyPlaceholder ? Colors.grey.shade400 : Colors.grey.shade200,
+            color: isEmptyPlaceholder 
+                ? Colors.grey.shade300 
+                : (isMale ? Colors.blue.shade100 : Colors.pink.shade100),
             width: isEmptyPlaceholder ? 1.5 : 1.0,
+            strokeAlign: BorderSide.strokeAlignOutside,
           ),
           boxShadow: isEmptyPlaceholder
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 6.0,
-                    offset: const Offset(0, 2),
+                    color: (isMale ? Colors.blue : Colors.pink).withValues(alpha: 0.05),
+                    blurRadius: 10.0,
+                    offset: const Offset(0, 4),
                   ),
                 ],
         ),
-        child: isEmptyPlaceholder 
-            ? _buildEmptyState(context) 
-            : _buildFilledState(context),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12.0),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Gender color accent bar
+                Container(
+                  width: 4.0,
+                  color: isEmptyPlaceholder 
+                      ? Colors.transparent 
+                      : (isMale ? Colors.blue.shade400 : Colors.pink.shade400),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                    child: isEmptyPlaceholder 
+                        ? _buildEmptyState(context) 
+                        : _buildFilledState(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -68,91 +91,95 @@ class PedigreeCardNode extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Role Title and Gender Accent Line
+        // Role Title
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
+            Expanded(
               child: Text(
                 roleName.toUpperCase(),
                 style: TextStyle(
-                  fontSize: isMobile ? 7.0 : 9.0,
-                  fontWeight: FontWeight.bold,
-                  color: isMale ? Colors.blue.shade700 : Colors.pink.shade700,
-                  letterSpacing: 0.5,
+                  fontSize: isMobile ? 8.0 : 10.0,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.grey.shade500,
+                  letterSpacing: 0.8,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             Icon(
               isMale ? Icons.male : Icons.female,
-              size: isMobile ? 10.0 : 12.0,
+              size: isMobile ? 12.0 : 14.0,
               color: isMale ? Colors.blue.shade400 : Colors.pink.shade400,
             ),
           ],
         ),
+        const SizedBox(height: 4.0),
         // Core Identity Content Block
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              callName!,
+        Text(
+          callName!,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: isMobile ? 12.0 : 14.0,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.secondaryColor,
+          ),
+        ),
+        if (registeredName != null && registeredName!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2.0),
+            child: Text(
+              registeredName!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: isMobile ? 11.0 : 13.0,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryColor,
-              ),
-            ),
-            Text(
-              registeredName ?? '',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: isMobile ? 8.0 : 10.0,
+                fontSize: isMobile ? 9.0 : 11.0,
                 fontStyle: FontStyle.italic,
                 color: Colors.grey.shade600,
               ),
             ),
-          ],
-        ),
+          ),
+        const SizedBox(height: 6.0),
         // Microchip Summary Row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
               child: Text(
-                microchip != null ? 'Chip: $microchip' : 'No Chip',
+                microchip != null && microchip!.isNotEmpty ? 'Chip: $microchip' : 'No Chip',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: isMobile ? 7.0 : 9.0,
+                  fontSize: isMobile ? 9.0 : 10.0,
                   color: Colors.grey.shade500,
                 ),
               ),
             ),
-            if (registerType != null)
+            if (registerType != null && registerType!.isNotEmpty) ...[
+              const SizedBox(width: 4.0),
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 2.0 : 4.0,
-                  vertical: 1.0,
+                  horizontal: isMobile ? 4.0 : 6.0,
+                  vertical: 2.0,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryLight.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(2.0),
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4.0),
                 ),
                 child: Text(
                   registerType!,
                   style: TextStyle(
-                    fontSize: isMobile ? 6.0 : 8.0,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.secondaryColor,
+                    fontSize: isMobile ? 8.0 : 9.0,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
+            ]
           ],
         ),
       ],
@@ -164,20 +191,22 @@ class PedigreeCardNode extends StatelessWidget {
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           Icons.add_circle_outline,
-          size: isMobile ? 14.0 : 18.0,
-          color: Colors.grey.shade500,
+          size: isMobile ? 18.0 : 24.0,
+          color: Colors.grey.shade400,
         ),
-        const SizedBox(height: 4.0),
+        const SizedBox(height: 6.0),
         Text(
           'Link $roleName',
           style: TextStyle(
-            fontSize: isMobile ? 8.0 : 10.0,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey.shade600,
+            fontSize: isMobile ? 10.0 : 12.0,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade500,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );

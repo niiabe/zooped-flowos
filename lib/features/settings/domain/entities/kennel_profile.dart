@@ -3,13 +3,19 @@ class KennelProfile {
   final String kennelName;
   final String? breederName;
   final String? contactInfo;
+  final String? phone;
+  final String? whatsapp;
+  final String? email;
   final String? localLogoPath;
 
   const KennelProfile({
     required this.id,
     required this.kennelName,
     this.breederName,
-    this.contactInfo,
+    this.contactInfo, // Legacy
+    this.phone,
+    this.whatsapp,
+    this.email,
     this.localLogoPath,
   });
 

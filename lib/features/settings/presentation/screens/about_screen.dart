@@ -8,6 +8,77 @@ class AboutScreen extends StatelessWidget {
 
   static const _changelog = [
     (
+      version: '1.4.0',
+      date: '2026-06-17',
+      entries: [
+        'Unified FileStorageService eliminating orphaned high-res images memory leaks',
+        'Refactored Heat Tracker to use autoDispose providers, solving stream bloat',
+        'Implemented global robust DatabaseException error boundaries',
+        'Parallel pedigree and gallery loading to eliminate UI thread blocking',
+        'Enforced strict tap-only UX on complex detail tabs to prevent lag',
+      ],
+    ),
+    (
+      version: '1.3.0',
+      date: '2026-06-17',
+      entries: [
+        'Optimized dog lookup: flat get (1 query) vs full pedigree (2 queries)',
+        'Added Matchmaker with COI prediction using concurrent pedigree loading',
+        'Added SQL search indexes for instant call-name/microchip lookups',
+        'Replaced heat tracker Dart filter with SQL push-down for 1000+ dog kennels',
+        'Removed 12 redundant use-case files; repositories injected directly',
+        'Eliminated analyzer warnings across the entire codebase',
+        'Added keep-alive caching for instant back-navigation from detail screens',
+        'Fixed database migration crash on transactions(dog_id) index creation',
+        'Added core library desugaring for Android SDK 33+ compatibility',
+        'Settings screen reordered: Kennel Profile, Backup, Appearance, About',
+      ],
+    ),
+    (
+      version: '1.2.0',
+      date: '2026-06-17',
+      entries: [
+        'Added Litters & Offspring tab to Dog Details',
+        'Added dynamic Dashboard Sorting and Sex Filtering',
+        'Introduced Appearance Settings: Dark/Light modes & 6 custom accent colors',
+        'Completely overhauled Pedigree Certificate PDF into an A4 Landscape format with generation tree and inline images',
+        'Achieved zero-warning compiler architecture and fixed context leaks',
+      ],
+    ),
+    (
+      version: '1.1.1',
+      date: '2026-06-17',
+      entries: [
+        'Added specific Phone, WhatsApp, and Email fields to Kennel Profile',
+        'Fixed dashboard not updating instantly after deleting a dog',
+        'Added SQLite VACUUM to properly compress database on size refresh',
+        'Migrated database schema to v6',
+      ],
+    ),
+    (
+      version: '1.1.0',
+      date: '2026-06-17',
+      entries: [
+        'Edit existing dog profiles via /dog/:id/edit route',
+        'List all registered litters with sire/dam names and puppy counts',
+        'Add photos to dog profiles; displayed on detail screen',
+        'CSV Import validation skips duplicates by registered name and microchip',
+        'Replaced N+1 recursive queries with batched ancestor loading',
+      ],
+    ),
+    (
+      version: '1.0.1',
+      date: '2026-06-17',
+      entries: [
+        'Added Great Grandparents to pedigree tree (5-generation display)',
+        'Fixed pedigree tree connection wires rendering',
+        'Fixed duplicate dog database insertion error',
+        'Patched memory leak in pedigree canvas',
+        'Resolved duplicate search suggestion entries',
+        'Updated about screen logo and layout',
+      ],
+    ),
+    (
       version: '1.0.0',
       date: '2026-06-14',
       entries: [
@@ -44,34 +115,17 @@ class AboutScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/images/appbarlogo.png',
-                  height: isTablet ? 100.0 : 80.0,
+                  'assets/images/ZooPed_about.png',
+                  height: isTablet ? 200.0 : 160.0,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => const Text(
                     'ZooPed',
                     style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                   ),
                 ),
-                SizedBox(height: padding * 2),
+                SizedBox(height: padding),
                 Text(
-                  'ZooPed',
-                  style: TextStyle(
-                    fontSize: isTablet ? 28.0 : 24.0,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Pedigree Documentation',
-                  style: TextStyle(
-                    fontSize: isTablet ? 16.0 : 14.0,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Version 1.0.0',
+                  'Version 1.3.0',
                   style: TextStyle(
                     fontSize: isTablet ? 14.0 : 12.0,
                     color: Colors.grey.shade500,
@@ -120,7 +174,7 @@ class AboutScreen extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.history, size: 20, color: AppTheme.primaryColor),
+            const Icon(Icons.history, size: 20, color: AppTheme.primaryColor),
             SizedBox(width: isTablet ? 12 : 8),
             Text(
               'Changelog',
@@ -182,7 +236,7 @@ class AboutScreen extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         '\u2022 ',
                         style: TextStyle(
                           color: AppTheme.primaryColor,

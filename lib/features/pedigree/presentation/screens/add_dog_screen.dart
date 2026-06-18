@@ -1,6 +1,10 @@
+import 'dart:io';
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../domain/entities/dog.dart';
@@ -9,7 +13,10 @@ import '../providers/shared_providers.dart';
 import 'dashboard_screen.dart';
 
 class AddDogScreen extends ConsumerStatefulWidget {
-  const AddDogScreen({super.key});
+  final int? childId;
+  final bool? isSire;
+
+  const AddDogScreen({super.key, this.childId, this.isSire});
 
   @override
   ConsumerState<AddDogScreen> createState() => _AddDogScreenState();
@@ -22,11 +29,23 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
   final _microchipController = TextEditingController();
   final _colorController = TextEditingController();
   final _notesController = TextEditingController();
+  final _dateOfBirthController = TextEditingController();
+  final _imagePicker = ImagePicker();
 
   String _sex = 'Male';
   int? _selectedSireId;
   int? _selectedDamId;
+  String _saleStatus = 'Not For Sale';
   DateTime? _dateOfBirth;
+  String? _photoPath;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isSire != null) {
+      _sex = widget.isSire! ? 'Male' : 'Female';
+    }
+  }
 
   @override
   void dispose() {
@@ -35,6 +54,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
     _microchipController.dispose();
     _colorController.dispose();
     _notesController.dispose();
+    _dateOfBirthController.dispose();
     super.dispose();
   }
 
@@ -62,6 +82,38 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
                   fontSize: isTablet ? 20.0 : 18.0,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.secondaryColor,
+                ),
+              ),
+              SizedBox(height: padding),
+
+              GestureDetector(
+                onTap: () async {
+                  final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    setState(() => _photoPath = picked.path);
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: _photoPath != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(File(_photoPath!), fit: BoxFit.cover),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.camera_alt, size: 32, color: Colors.grey.shade400),
+                            const SizedBox(height: 8),
+                            Text('Tap to add photo', style: TextStyle(color: Colors.grey.shade500)),
+                          ],
+                        ),
                 ),
               ),
               SizedBox(height: padding),
@@ -106,12 +158,30 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
                   DropdownMenuItem(value: 'Male', child: Text('Male')),
                   DropdownMenuItem(value: 'Female', child: Text('Female')),
                 ],
+                onChanged: widget.isSire != null
+                    ? null // Disable changing sex if we are specifically adding a Sire or Dam
+                    : (value) {
+                        setState(() {
+                          _sex = value!;
+                        });
+                      },
+              ),
+              SizedBox(height: padding),
+              
+              DropdownButtonFormField<String>(
+                initialValue: _saleStatus,
+                decoration: const InputDecoration(
+                  labelText: 'Sale Status',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'Not For Sale', child: Text('Not For Sale')),
+                  DropdownMenuItem(value: 'Available', child: Text('Available')),
+                  DropdownMenuItem(value: 'Reserved', child: Text('Reserved')),
+                  DropdownMenuItem(value: 'Sold', child: Text('Sold')),
+                ],
                 onChanged: (value) {
-                  setState(() {
-                    _sex = value!;
-                    _selectedSireId = null;
-                    _selectedDamId = null;
-                  });
+                  if (value != null) setState(() => _saleStatus = value);
                 },
               ),
               SizedBox(height: padding),
@@ -119,9 +189,18 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
               TextFormField(
                 controller: _microchipController,
                 decoration: const InputDecoration(
-                  labelText: 'Microchip Number',
+                  labelText: 'Microchip Number (9-15 digits)',
                   border: OutlineInputBorder(),
                 ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    if (value.length < 9 || value.length > 15) {
+                      return 'Must be 9-15 digits';
+                    }
+                  }
+                  return null;
+                },
               ),
               SizedBox(height: padding),
 
@@ -136,10 +215,10 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
 
               TextFormField(
                 readOnly: true,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Date of Birth',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: const Icon(Icons.calendar_today),
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today),
                 ),
                 onTap: () async {
                   final date = await showDatePicker(
@@ -154,9 +233,10 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
                     });
                   }
                 },
-                controller: TextEditingController(
-                  text: _dateOfBirth?.toString().split(' ')[0] ?? '',
-                ),
+                  controller: _dateOfBirthController
+                    ..text = _dateOfBirth != null
+                        ? DateFormat('yyyy-MM-dd').format(_dateOfBirth!)
+                        : '',
               ),
               SizedBox(height: padding * 2),
 
@@ -170,51 +250,69 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
               ),
               SizedBox(height: padding),
 
-              if (_sex == 'Male') ...[
-                siresAsync.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (e, _) => Text('Error: $e'),
-                  data: (sires) => DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(
-                      labelText: 'Sire (Father)',
-                      border: OutlineInputBorder(),
+              siresAsync.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Error: $e'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => ref.invalidate(siresProvider),
+                      child: const Text('Retry'),
                     ),
-                    items: sires.map((dog) {
-                      return DropdownMenuItem(
-                        value: dog.id,
-                        child: Text('${dog.callName} (${dog.registeredName})'),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedSireId = value;
-                      });
-                    },
-                  ),
+                  ],
                 ),
-              ] else ...[
-                damsAsync.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (e, _) => Text('Error: $e'),
-                  data: (dams) => DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(
-                      labelText: 'Dam (Mother)',
-                      border: OutlineInputBorder(),
+                data: (sires) => DropdownButtonFormField<int>(
+                  decoration: const InputDecoration(
+                    labelText: 'Sire (Father) - Optional',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: sires.map((dog) {
+                    return DropdownMenuItem(
+                      value: dog.id,
+                      child: Text('${dog.callName} (${dog.registeredName})'),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSireId = value;
+                    });
+                  },
+                ),
+              ),
+              SizedBox(height: padding),
+              damsAsync.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Error: $e'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => ref.invalidate(damsProvider),
+                      child: const Text('Retry'),
                     ),
-                    items: dams.map((dog) {
-                      return DropdownMenuItem(
-                        value: dog.id,
-                        child: Text('${dog.callName} (${dog.registeredName})'),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedDamId = value;
-                      });
-                    },
-                  ),
+                  ],
                 ),
-              ],
+                data: (dams) => DropdownButtonFormField<int>(
+                  decoration: const InputDecoration(
+                    labelText: 'Dam (Mother) - Optional',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: dams.map((dog) {
+                    return DropdownMenuItem(
+                      value: dog.id,
+                      child: Text('${dog.callName} (${dog.registeredName})'),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDamId = value;
+                    });
+                  },
+                ),
+              ),
               SizedBox(height: padding),
 
               TextFormField(
@@ -250,13 +348,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      final insertUseCase = ref.read(insertDogUseCaseProvider);
-      final sire = _selectedSireId != null
-          ? await ref.read(getDogByIdUseCaseProvider)(_selectedSireId!)
-          : null;
-      final dam = _selectedDamId != null
-          ? await ref.read(getDogByIdUseCaseProvider)(_selectedDamId!)
-          : null;
+      final repo = ref.read(pedigreeRepositoryProvider);
 
       final dog = Dog(
         id: 0,
@@ -270,22 +362,42 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
         colorMarkings: _colorController.text.isEmpty
             ? null
             : _colorController.text.trim(),
-        sire: sire,
-        dam: dam,
+        photoPath: _photoPath,
+        saleStatus: _saleStatus,
         notes: _notesController.text.isEmpty
             ? null
             : _notesController.text.trim(),
         createdAt: DateTime.now(),
       );
 
-      await insertUseCase(dog);
+      final newDogId = await repo.insertDog(dog, sireId: _selectedSireId, damId: _selectedDamId);
+
+      if (widget.childId != null && widget.isSire != null) {
+        if (!mounted) return;
+        final childDog = await repo.getDogByIdFlat(widget.childId!);
+        if (widget.isSire!) {
+          await repo.updateDog(childDog, sireId: newDogId);
+        } else {
+          await repo.updateDog(childDog, damId: newDogId);
+        }
+      }
 
       if (mounted) {
         ref.invalidate(dogsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Dog added successfully')),
         );
-        context.pop();
+        context.pop(true);
+      }
+    } on SqliteException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message.contains('UNIQUE')
+                ? 'A dog with this name or microchip already exists'
+                : 'Error saving dog: $e'),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

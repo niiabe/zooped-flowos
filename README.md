@@ -6,7 +6,7 @@
 
 A Flutter Android application for tracking dog pedigrees, designed for professional breeders and kennel clubs.
 
-**Package:** `com.zooped.niiabe` | **Version:** 1.0.0 | **License:** Private
+**Package:** `com.zooped.niiabe` | **Version:** 1.4.0 | **License:** Private
 
 ## Platform
 
@@ -21,6 +21,9 @@ A Flutter Android application for tracking dog pedigrees, designed for professio
 - **Litter Tracking** - Record matings, whelping dates, and auto-create puppy profiles with inherited parentage
 - **Custom Kennel Branding** - Upload kennel logo and configure breeder profile (logo-driven theme)
 - **CSV Backup & Import** - Export and import all dog/litter data as CSV files from the app documents directory
+- **Dynamic Theming** - Switch between Dark/Light modes and multiple accent colors
+- **Matchmaker & COI Prediction** - Simulate breeding pairs with 5-generation inbreeding coefficient calculation
+- **Heat Tracker** - Log and monitor female heat cycles with upcoming whelping alerts
 - **Offline-First** - All data stored locally using SQLite via Drift
 
 ## Screenshots
@@ -139,15 +142,22 @@ flutter build apk --release
 
 - **dogs** - Core dog records with self-referencing sire/dam foreign keys
 - **litters** - Breeding events linking sire/dam with whelping outcomes
+- **transactions** - Kennel financial tracking (revenue/expenses)
+- **heat_cycles** - Female dog heat cycle logging
+- **matings** - Mating records for upcoming whelping predictions
 - **kennel_profile** - Single-row kennel branding configuration
 
 ## UI Screens
 
-1. **Dashboard** - Search bar, dog list, quick-add FAB
-2. **Dog Detail** - Identity card + interactive 3-gen pedigree canvas with PDF export/share
-3. **Litter Form** - 3-step wizard (parents -> dates -> puppy roster)
-4. **Settings** - Kennel profile, logo upload, CSV backup/import
-5. **About** - Developer info, links, in-app changelog
+1. **Dashboard** - Search bar, dog list, quick-add FAB, litter list link
+2. **Dog Detail** - Identity card, photo, interactive pedigree canvas with PDF export/share
+3. **Dog Edit** - Edit existing dog profiles with photo upload
+4. **Litter List** - Browse all registered litters with details
+5. **Litter Form** - 3-step wizard (parents -> dates -> puppy roster)
+6. **Matchmaker** - Sire/dam selection with real-time COI calculation and hypothetical pedigree preview
+7. **Heat Tracker** - Expansion cards for each female with logged heat cycles
+8. **Settings** - Kennel profile, backup/migration, appearance/theming, about
+9. **About** - Developer info, links, in-app changelog
 
 ## Changelog
 
