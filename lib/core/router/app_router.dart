@@ -16,6 +16,7 @@ import '../../features/settings/presentation/screens/add_transaction_screen.dart
 import '../../features/pedigree/presentation/screens/add_health_record_screen.dart';
 import '../../features/pedigree/presentation/screens/matchmaker_screen.dart';
 import '../../features/pedigree/presentation/screens/add_show_record_screen.dart';
+import '../../features/pedigree/presentation/screens/analytics_screen.dart';
 
 int? _parseId(GoRouterState state, {String key = 'id'}) {
   final idStr = state.pathParameters[key];
@@ -34,6 +35,12 @@ class AppRouter {
         path: '/',
         builder: (BuildContext context, GoRouterState state) {
           return const DashboardScreen();
+        },
+      ),
+      GoRoute(
+        path: '/analytics',
+        builder: (BuildContext context, GoRouterState state) {
+          return const AnalyticsScreen();
         },
       ),
       GoRoute(

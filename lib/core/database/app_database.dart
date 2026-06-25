@@ -15,6 +15,10 @@ class KennelProfile extends Table {
   TextColumn get whatsapp => text().nullable()();
   TextColumn get email => text().nullable()();
   TextColumn get localLogoPath => text().nullable()();
+  TextColumn get primaryBreeds => text().nullable()();
+  TextColumn get brandColorHex => text().nullable()();
+  TextColumn get certificateBorderTheme => text().nullable()();
+  TextColumn get customSignaturePath => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -24,6 +28,7 @@ class Dogs extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get registeredName => text().withLength(min: 1, max: 150).unique()();
   TextColumn get callName => text().withLength(min: 1, max: 50)();
+  TextColumn get breed => text().nullable()();
   TextColumn get sex => text().withLength(min: 1, max: 10)(); // 'Male' or 'Female'
   DateTimeColumn get dateOfBirth => dateTime().nullable()();
   TextColumn get microchipNumber => text().nullable().unique()();
@@ -111,7 +116,9 @@ class HeatCycles extends Table {
 
 class Matings extends Table {
   IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('matingSires')
   IntColumn get sireId => integer().references(Dogs, #id)();
+  @ReferenceName('matingDams')
   IntColumn get damId => integer().references(Dogs, #id)();
   DateTimeColumn get matingDate => dateTime()();
   TextColumn get notes => text().nullable()();
@@ -449,6 +456,53 @@ class AppDatabase extends _$AppDatabase {
       }
       return litterId;
     });
+  }
+
+  Stream<List<Dog>> watchFilteredDogs({String? sex, String? sortBy}) {
+    var query = select(dogs);
+    if (sex != null && sex != 'All') {
+      query = query..where((tbl) => tbl.sex.equals(sex));
+    }
+    if (sortBy == 'Name (A-Z)') {
+      query = query..orderBy([(d) => OrderingTerm.asc(d.callName)]);
+    } else if (sortBy == 'Recent') {
+      query = query..orderBy([(d) => OrderingTerm.desc(d.id)]);
+    } else if (sortBy == 'Age (Youngest)') {
+      query = query..orderBy([(d) => OrderingTerm.desc(d.dateOfBirth)]);
+    } else {
+      query = query..orderBy([(t) => OrderingTerm(expression: t.callName, mode: OrderingMode.asc)]);
+    }
+    return query.watch();
+  }
+
+  Stream<List<Litter>> watchAllLitters() {
+    return (select(litters)..orderBy([(t) => OrderingTerm(expression: t.whelpingDate, mode: OrderingMode.desc)])).watch();
+  }
+
+  Stream<List<HeatCycle>> watchAllHeatCycles() {
+    return (select(heatCycles)..orderBy([(t) => OrderingTerm(expression: t.startDate, mode: OrderingMode.desc)])).watch();
+  }
+
+  Future<List<int>> getDescendantIds(int dogId) async {
+    final descendantIds = <int>[];
+    final currentIds = <int>[dogId];
+
+    while (currentIds.isNotEmpty) {
+      final batchIds = List<int>.from(currentIds);
+      currentIds.clear();
+
+      final offspring = await (select(dogs)
+            ..where((tbl) => tbl.sireId.isIn(batchIds) | tbl.damId.isIn(batchIds)))
+          .get();
+
+      for (var dog in offspring) {
+        if (!descendantIds.contains(dog.id)) {
+          descendantIds.add(dog.id);
+          currentIds.add(dog.id);
+        }
+      }
+    }
+    return descendantIds;
   }
 }
 

@@ -2,6 +2,7 @@ import '../../domain/entities/dog.dart' as domain;
 import '../../domain/entities/litter.dart' as domain_litter;
 import '../../domain/repositories/pedigree_repository.dart';
 import '../../../../core/database/app_database.dart';
+import 'package:drift/drift.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/services/file_storage_service.dart';
 import '../models/dog_model.dart';
@@ -87,6 +88,13 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
   }
 
   @override
+  Stream<List<domain.Dog>> watchFilteredDogs({String? sex, String? sortBy}) {
+    return _database.watchFilteredDogs(sex: sex, sortBy: sortBy).map(
+      (dogsData) => dogsData.map((dog) => dog.toDomain()).toList(),
+    );
+  }
+
+  @override
   Future<int> insertDog(domain.Dog dog, {int? sireId, int? damId}) async {
     try {
       return await _database.insertDog(dog.toCompanion(overrideSireId: sireId, overrideDamId: damId));
@@ -101,6 +109,19 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
       await _database.updateDog(dog.toCompanion(overrideSireId: sireId, overrideDamId: damId));
     } catch (e) {
       throw DatabaseException('Failed to update dog: $e', e);
+    }
+  }
+
+  @override
+  Future<void> updateDogParent(int childId, {int? sireId, bool updateSire = false, int? damId, bool updateDam = false}) async {
+    try {
+      final companion = DogsCompanion(
+        sireId: updateSire ? Value(sireId) : const Value.absent(),
+        damId: updateDam ? Value(damId) : const Value.absent(),
+      );
+      await (_database.update(_database.dogs)..where((d) => d.id.equals(childId))).write(companion);
+    } catch (e) {
+      throw DatabaseException('Failed to update dog parent: $e', e);
     }
   }
 
@@ -133,6 +154,11 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
   Future<List<domain.Dog>> getOffspringForDog(int dogId) async {
     final dogsData = await _database.getOffspringForDog(dogId);
     return dogsData.map((dog) => dog.toDomain()).toList();
+  }
+
+  @override
+  Future<List<int>> getDescendantIds(int dogId) async {
+    return await _database.getDescendantIds(dogId);
   }
 
   @override
@@ -171,6 +197,13 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
   Future<List<domain_litter.Litter>> getAllLitters() async {
     final littersData = await _database.getAllLitters();
     return littersData.map((litter) => litter.toDomain()).toList();
+  }
+
+  @override
+  Stream<List<domain_litter.Litter>> watchAllLitters() {
+    return _database.watchAllLitters().map(
+      (littersData) => littersData.map((litter) => litter.toDomain()).toList(),
+    );
   }
 
   @override

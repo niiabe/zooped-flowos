@@ -125,7 +125,8 @@ class LitterListScreen extends ConsumerWidget {
             itemCount: litters.length,
             itemBuilder: (context, index) {
               final litter = litters[index];
-              return Card(
+              return RepaintBoundary(
+                child: Card(
                 key: ValueKey('litter_${litter.id}'),
                 margin: EdgeInsets.only(bottom: padding),
                 elevation: 0,
@@ -202,9 +203,10 @@ class LitterListScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-              );
-            },
-          );
+              ),
+            );
+          },
+        );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(

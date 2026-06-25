@@ -6,7 +6,7 @@
 
 A Flutter Android application for tracking dog pedigrees, designed for professional breeders and kennel clubs.
 
-**Package:** `com.zooped.niiabe` | **Version:** 1.4.0 | **License:** Private
+**Package:** `com.zooped.niiabe` | **Version:** 1.4.1+11 | **License:** Private
 
 ## Platform
 
@@ -17,7 +17,7 @@ A Flutter Android application for tracking dog pedigrees, designed for professio
 
 - **Dog Identity Ledger** - Register and manage dogs with call names, registered names, microchip numbers, breed, color, and more
 - **Interactive 3-Generation Pedigree Tree** - Zoomable/pannable InteractiveViewer canvas displaying sire/dam lineage with tap-to-navigate to ancestors
-- **5-Generation PDF Export** - Generate professional A4 landscape pedigree certificates for printing or sharing
+- **3-Generation PDF Export** - Generate professional A4 landscape pedigree certificates for printing or sharing
 - **Litter Tracking** - Record matings, whelping dates, and auto-create puppy profiles with inherited parentage
 - **Custom Kennel Branding** - Upload kennel logo and configure breeder profile (logo-driven theme)
 - **CSV Backup & Import** - Export and import all dog/litter data as CSV files from the app documents directory

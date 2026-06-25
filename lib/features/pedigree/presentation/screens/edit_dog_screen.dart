@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/services/file_storage_service.dart';
 import '../../domain/entities/dog.dart';
 import '../providers/pedigree_providers.dart';
 import '../providers/shared_providers.dart';
@@ -30,6 +32,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
   final _formKey = GlobalKey<FormState>();
   final _registeredNameController = TextEditingController();
   final _callNameController = TextEditingController();
+  final _breedController = TextEditingController();
   final _microchipController = TextEditingController();
   final _colorController = TextEditingController();
   final _notesController = TextEditingController();
@@ -42,12 +45,37 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
   int? _selectedDamId;
   DateTime? _dateOfBirth;
   String? _photoPath;
+  String? _saleStatus;
+  List<int> _descendantIds = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDescendants();
+  }
+
+  Future<void> _loadDescendants() async {
+    final repo = ref.read(pedigreeRepositoryProvider);
+    final descendants = await repo.getDescendantIds(widget.dogId);
+    if (mounted) {
+      setState(() {
+        _descendantIds = descendants;
+        if (_selectedSireId != null && descendants.contains(_selectedSireId!)) {
+          _selectedSireId = null; // Auto-fix invalid sire
+        }
+        if (_selectedDamId != null && descendants.contains(_selectedDamId!)) {
+          _selectedDamId = null; // Auto-fix invalid dam
+        }
+      });
+    }
+  }
 
   void _initFromDog(Dog dog) {
     if (_dataLoaded) return;
     _dataLoaded = true;
     _registeredNameController.text = dog.registeredName;
     _callNameController.text = dog.callName;
+    _breedController.text = dog.breed ?? '';
     _microchipController.text = dog.microchipNumber ?? '';
     _colorController.text = dog.colorMarkings ?? '';
     _notesController.text = dog.notes ?? '';
@@ -59,12 +87,14 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
     _selectedDamId = dog.dam?.id;
     _photoPath = dog.photoPath;
     _dateOfBirth = dog.dateOfBirth;
+    _saleStatus = dog.saleStatus ?? 'Not For Sale';
   }
 
   @override
   void dispose() {
     _registeredNameController.dispose();
     _callNameController.dispose();
+    _breedController.dispose();
     _microchipController.dispose();
     _colorController.dispose();
     _notesController.dispose();
@@ -79,6 +109,13 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
     final isTablet = Responsive.isTablet(context);
     final siresAsync = ref.watch(siresProvider);
     final damsAsync = ref.watch(damsProvider);
+    final kennelProfile = ref.watch(kennelProfileProvider).valueOrNull;
+    final availableBreeds = kennelProfile?.primaryBreeds
+            ?.split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        [];
 
     return Scaffold(
       appBar: AppBar(
@@ -104,6 +141,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
 
           return Form(
             key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             child: SingleChildScrollView(
               padding: EdgeInsets.all(padding),
               child: Column(
@@ -121,9 +159,10 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
 
                   GestureDetector(
                     onTap: () async {
-                  final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
+                      final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
                       if (picked != null) {
-                        setState(() => _photoPath = picked.path);
+                        final permanentPath = await FileStorageService.saveImagePermanently(picked.path);
+                        setState(() => _photoPath = permanentPath);
                       }
                     },
                     child: Container(
@@ -181,6 +220,56 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
                   ),
                   SizedBox(height: padding),
 
+                  RawAutocomplete<String>(
+                    textEditingController: _breedController,
+                    focusNode: FocusNode(),
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return availableBreeds;
+                      }
+                      return availableBreeds.where((String option) {
+                        return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                      });
+                    },
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      return TextFormField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(
+                          labelText: 'Breed',
+                          border: OutlineInputBorder(),
+                        ),
+                      );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4.0,
+                          child: SizedBox(
+                            height: 200.0,
+                            width: MediaQuery.of(context).size.width - (padding * 2),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              itemCount: options.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final option = options.elementAt(index);
+                                return InkWell(
+                                  onTap: () => onSelected(option),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(option),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  SizedBox(height: padding),
+
                   DropdownButtonFormField<String>(
                     initialValue: _sex,
                     decoration: const InputDecoration(
@@ -199,6 +288,25 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
                   ),
                   SizedBox(height: padding),
 
+                  DropdownButtonFormField<String>(
+                    initialValue: _saleStatus,
+                    decoration: const InputDecoration(
+                      labelText: 'Sale Status',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'Not For Sale', child: Text('Not For Sale')),
+                      DropdownMenuItem(value: 'Available', child: Text('Available')),
+                      DropdownMenuItem(value: 'Reserved', child: Text('Reserved')),
+                      DropdownMenuItem(value: 'Sold', child: Text('Sold')),
+                      DropdownMenuItem(value: 'Not Owned', child: Text('Not Owned')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) setState(() => _saleStatus = value);
+                    },
+                  ),
+                  SizedBox(height: padding),
+
                   TextFormField(
                     controller: _microchipController,
                     decoration: const InputDecoration(
@@ -206,6 +314,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: (value) {
                       if (value != null && value.isNotEmpty) {
                         if (value.length < 9 || value.length > 15) {
@@ -281,7 +390,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
                       ),
                       items: [
                         const DropdownMenuItem<int>(value: null, child: Text('None')),
-                        ...sires.where((d) => d.id != widget.dogId).map((d) {
+                        ...sires.where((d) => d.id != widget.dogId && !_descendantIds.contains(d.id)).map((d) {
                           return DropdownMenuItem(
                             value: d.id,
                             child: Text('${d.callName} (${d.registeredName})'),
@@ -317,7 +426,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
                       ),
                       items: [
                         const DropdownMenuItem<int>(value: null, child: Text('None')),
-                        ...dams.where((d) => d.id != widget.dogId).map((d) {
+                        ...dams.where((d) => d.id != widget.dogId && !_descendantIds.contains(d.id)).map((d) {
                           return DropdownMenuItem(
                             value: d.id,
                             child: Text('${d.callName} (${d.registeredName})'),
@@ -373,6 +482,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
       final updated = dog.copyWith(
         registeredName: _registeredNameController.text.trim(),
         callName: _callNameController.text.trim(),
+        breed: _breedController.text.isEmpty ? null : _breedController.text.trim(),
         sex: _sex,
         dateOfBirth: _dateOfBirth,
         microchipNumber: _microchipController.text.isEmpty
@@ -382,6 +492,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
             ? null
             : _colorController.text.trim(),
         photoPath: _photoPath,
+        saleStatus: _saleStatus,
         notes: _notesController.text.isEmpty
             ? null
             : _notesController.text.trim(),

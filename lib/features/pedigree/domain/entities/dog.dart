@@ -2,6 +2,7 @@ class Dog {
   final int id;
   final String registeredName;
   final String callName;
+  final String? breed;
   final String sex; // 'Male' or 'Female'
   final DateTime? dateOfBirth;
   final String? microchipNumber;
@@ -27,6 +28,7 @@ class Dog {
     required this.id,
     required this.registeredName,
     required this.callName,
+    this.breed,
     required this.sex,
     this.dateOfBirth,
     this.microchipNumber,
@@ -50,6 +52,7 @@ class Dog {
     int? id,
     String? registeredName,
     String? callName,
+    String? breed,
     String? sex,
     DateTime? dateOfBirth,
     String? microchipNumber,
@@ -73,6 +76,7 @@ class Dog {
       id: id ?? this.id,
       registeredName: registeredName ?? this.registeredName,
       callName: callName ?? this.callName,
+      breed: breed ?? this.breed,
       sex: sex ?? this.sex,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       microchipNumber: microchipNumber ?? this.microchipNumber,

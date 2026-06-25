@@ -47,6 +47,7 @@ class _AddShowRecordScreenState extends ConsumerState<AddShowRecordScreen> {
       ),
       body: Form(
         key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: SingleChildScrollView(
           padding: EdgeInsets.all(padding),
           child: Column(

@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../domain/entities/dog.dart';
 import '../providers/pedigree_providers.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:share_plus/share_plus.dart';
+import 'package:printing/printing.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../core/services/certificate_service.dart';
+import '../providers/shared_providers.dart';
 import '../widgets/pedigree_canvas.dart';
+import 'heat_tracker_tab.dart';
 
 final _allDogsProvider = FutureProvider.autoDispose<List<Dog>>((ref) async {
   final repo = ref.watch(pedigreeRepositoryProvider);
@@ -144,26 +152,37 @@ class _MatchmakerScreenState extends ConsumerState<MatchmakerScreen> {
                                     color: AppTheme.primaryColor,
                                   ),
                                 ),
+                                const SizedBox(width: 16),
+                                OutlinedButton.icon(
+                                  onPressed: () => _shareHypotheticalPedigree(context),
+                                  icon: const Icon(Icons.share),
+                                  label: const Text('Preview Pedigree'),
+                                ),
                               ],
                             ),
-                          ),
+                          ).animate().fadeIn().slideY(begin: 0.2, end: 0.0),
                           Expanded(
                             child: PedigreeCanvas(
                               rootDog: _hypotheticalPuppy!,
-                              onDogTap: (dog) {
-                                if (dog.id != -1) {
-                                  context.push('/dog/${dog.id}');
-                                }
-                              },
-                            ),
+                              onDogTap: (dog) {},
+                            ).animate().fadeIn(duration: 600.ms),
                           ),
                         ] else ...[
-                          const Expanded(
+                          Expanded(
                             child: Center(
-                              child: Text(
-                                'Select a Sire and Dam to view the hypothetical pedigree.',
-                                style: TextStyle(color: Colors.grey, fontSize: 16),
-                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.pets, size: 80, color: Colors.grey.shade300)
+                                      .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                                      .scaleXY(begin: 0.9, end: 1.1, duration: 1.seconds, curve: Curves.easeInOut),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Select a Sire and Dam to preview the hypothetical puppy.',
+                                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                                  ),
+                                ],
+                              ).animate().fadeIn(duration: 500.ms),
                             ),
                           ),
                         ],
@@ -173,11 +192,12 @@ class _MatchmakerScreenState extends ConsumerState<MatchmakerScreen> {
           );
         },
       ),
-          ],
-        ),
-      ),
-    );
-  }
+      const HeatTrackerTab(),
+    ],
+  ),
+),
+);
+}
 
   Widget _buildSireSelector(List<Dog> sires) {
     return DropdownButtonFormField<Dog>(
@@ -252,5 +272,53 @@ class _MatchmakerScreenState extends ConsumerState<MatchmakerScreen> {
         createdAt: DateTime.now(),
       );
     });
+  }
+
+  Future<void> _shareHypotheticalPedigree(BuildContext context) async {
+    if (_hypotheticalPuppy == null) return;
+    
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final kennelProfile = await ref.read(kennelProfileProvider.future);
+      File? logoFile;
+      if (kennelProfile.hasCustomLogo) {
+        logoFile = File(kennelProfile.localLogoPath!);
+        if (!await logoFile.exists()) logoFile = null;
+      }
+
+      final pdfBytes = await CertificateService.generateCertificate(
+        dog: _hypotheticalPuppy!,
+        kennelProfile: kennelProfile,
+        logoFile: logoFile,
+      );
+
+      await for (final page in Printing.raster(pdfBytes, pages: [0], dpi: 300)) {
+        final pngBytes = await page.toPng();
+        final tempDir = await getTemporaryDirectory();
+        final file = File(p.join(tempDir.path, 'hypothetical_pedigree.png'));
+        await file.writeAsBytes(pngBytes);
+        
+        if (!context.mounted) return;
+        Navigator.pop(context); // Close loading dialog
+        
+        final xFile = XFile(file.path, mimeType: 'image/png');
+        await Share.shareXFiles(
+          [xFile],
+          text: 'Check out this hypothetical breeding! Projected COI: ${_hypotheticalPuppy!.inbreedingCoefficient?.toStringAsFixed(2)}%',
+        );
+        break; // Only need the first page
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error generating preview: $e')),
+      );
+    }
   }
 }

@@ -13,6 +13,9 @@ extension KennelProfileMapper on KennelProfileData {
       whatsapp: whatsapp,
       email: email,
       localLogoPath: localLogoPath,
+      primaryBreeds: primaryBreeds,
+      brandColorHex: brandColorHex,
+      certificateBorderTheme: certificateBorderTheme,
     );
   }
 }
@@ -28,6 +31,9 @@ extension KennelProfileEntityMapper on domain.KennelProfile {
       whatsapp: Value(whatsapp),
       email: Value(email),
       localLogoPath: Value(localLogoPath),
+      primaryBreeds: Value(primaryBreeds),
+      brandColorHex: Value(brandColorHex),
+      certificateBorderTheme: Value(certificateBorderTheme),
     );
   }
 }

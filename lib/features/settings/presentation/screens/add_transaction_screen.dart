@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -45,6 +46,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -68,6 +70,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   prefixIcon: Icon(Icons.attach_money),
                 ),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
                 validator: (val) {
                   if (val == null || val.isEmpty) return 'Enter an amount';
                   if (double.tryParse(val) == null) return 'Enter a valid number';

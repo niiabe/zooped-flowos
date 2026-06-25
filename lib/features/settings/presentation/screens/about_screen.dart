@@ -1,100 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  String _version = 'Loading...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPackageInfo();
+  }
+
+  Future<void> _loadPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _version = 'Version ${info.version}+${info.buildNumber}';
+      });
+    }
+  }
 
   static const _changelog = [
     (
-      version: '1.4.0',
-      date: '2026-06-17',
+      version: '1.4.1+11',
+      date: '2026-06-20',
       entries: [
-        'Unified FileStorageService eliminating orphaned high-res images memory leaks',
-        'Refactored Heat Tracker to use autoDispose providers, solving stream bloat',
-        'Implemented global robust DatabaseException error boundaries',
-        'Parallel pedigree and gallery loading to eliminate UI thread blocking',
-        'Enforced strict tap-only UX on complex detail tabs to prevent lag',
+        'Restored the Heat Tracker screen which was incorrectly displaying the Matchmaker tab',
+        'Litters list now auto-refreshes instantly upon returning from the Add Litter screen',
+        'Litters list now auto-refreshes instantly upon returning from the Add Litter screen',
+        'Enabled global live input validation (e.g., Microchip Number warns instantly while typing)',
+        'Stripped 10+ older historical changelog data points to reduce app bundle weight',
       ],
     ),
     (
-      version: '1.3.0',
-      date: '2026-06-17',
+      version: '1.4.0+10',
+      date: '2026-06-20',
       entries: [
-        'Optimized dog lookup: flat get (1 query) vs full pedigree (2 queries)',
-        'Added Matchmaker with COI prediction using concurrent pedigree loading',
-        'Added SQL search indexes for instant call-name/microchip lookups',
-        'Replaced heat tracker Dart filter with SQL push-down for 1000+ dog kennels',
-        'Removed 12 redundant use-case files; repositories injected directly',
-        'Eliminated analyzer warnings across the entire codebase',
-        'Added keep-alive caching for instant back-navigation from detail screens',
-        'Fixed database migration crash on transactions(dog_id) index creation',
-        'Added core library desugaring for Android SDK 33+ compatibility',
-        'Settings screen reordered: Kennel Profile, Backup, Appearance, About',
+        'Prevented infinite circular pedigree loops by filtering descendants out of sire/dam selection',
+        'Auto-repairs corrupted circular lineage when opening the Edit Dog screen',
+        'Added EXACT_ALARM Android permissions to fix crashing when adding health records',
+        'Health records now guarantee saving even if the device blocks reminder notifications',
       ],
     ),
     (
-      version: '1.2.0',
-      date: '2026-06-17',
+      version: '1.4.0+9',
+      date: '2026-06-20',
       entries: [
-        'Added Litters & Offspring tab to Dog Details',
-        'Added dynamic Dashboard Sorting and Sex Filtering',
-        'Introduced Appearance Settings: Dark/Light modes & 6 custom accent colors',
-        'Completely overhauled Pedigree Certificate PDF into an A4 Landscape format with generation tree and inline images',
-        'Achieved zero-warning compiler architecture and fixed context leaks',
+        'Fixed critical bug where adding a missing parent via pedigree canvas deleted the other parent',
+        'Dogs added directly from pedigree canvas now properly default to "Not Owned" sale status',
       ],
     ),
-    (
-      version: '1.1.1',
-      date: '2026-06-17',
-      entries: [
-        'Added specific Phone, WhatsApp, and Email fields to Kennel Profile',
-        'Fixed dashboard not updating instantly after deleting a dog',
-        'Added SQLite VACUUM to properly compress database on size refresh',
-        'Migrated database schema to v6',
-      ],
-    ),
-    (
-      version: '1.1.0',
-      date: '2026-06-17',
-      entries: [
-        'Edit existing dog profiles via /dog/:id/edit route',
-        'List all registered litters with sire/dam names and puppy counts',
-        'Add photos to dog profiles; displayed on detail screen',
-        'CSV Import validation skips duplicates by registered name and microchip',
-        'Replaced N+1 recursive queries with batched ancestor loading',
-      ],
-    ),
-    (
-      version: '1.0.1',
-      date: '2026-06-17',
-      entries: [
-        'Added Great Grandparents to pedigree tree (5-generation display)',
-        'Fixed pedigree tree connection wires rendering',
-        'Fixed duplicate dog database insertion error',
-        'Patched memory leak in pedigree canvas',
-        'Resolved duplicate search suggestion entries',
-        'Updated about screen logo and layout',
-      ],
-    ),
-    (
-      version: '1.0.0',
-      date: '2026-06-14',
-      entries: [
-        'Dog identity management with full profile fields',
-        'Interactive 3-generation pedigree tree with tap-to-navigate',
-        '5-generation PDF certificate generation and sharing',
-        'Litter tracking with 3-step wizard',
-        'Puppy auto-create with parent references',
-        'Custom kennel branding and logo upload',
-        'CSV export and import from app documents',
-        'Logo-driven theme (Green + Charcoal)',
-        'Responsive design for phones and tablets',
-        'About screen with developer info',
-        'Offline-first SQLite storage via Drift',
-      ],
-    ),
+
   ];
 
   @override
@@ -125,7 +90,7 @@ class AboutScreen extends StatelessWidget {
                 ),
                 SizedBox(height: padding),
                 Text(
-                  'Version 1.3.0',
+                  _version,
                   style: TextStyle(
                     fontSize: isTablet ? 14.0 : 12.0,
                     color: Colors.grey.shade500,

@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:share_plus/share_plus.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
-import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../../../core/database/app_database.dart' hide Dog;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/services/certificate_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/file_storage_service.dart';
@@ -35,6 +38,7 @@ class DogDetailScreen extends ConsumerStatefulWidget {
 
 class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
   bool _generatingPdf = false;
+  final GlobalKey _pedigreeExportKey = GlobalKey();
   Dog? _dog;
   final _imagePicker = ImagePicker();
 
@@ -98,6 +102,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
             physics: const NeverScrollableScrollPhysics(),
             children: [
               PedigreeCanvas(
+                exportKey: _pedigreeExportKey,
                 rootDog: dog,
                 onDogTap: (selectedDog) {
                   context.push('/dog/${selectedDog.id}');
@@ -225,8 +230,8 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     );
   }
 
-  Future<Map<int, pw.MemoryImage>> _preloadDogImages(Dog rootDog) async {
-    final Map<int, pw.MemoryImage> imageMap = {};
+  Future<Map<int, Uint8List>> _preloadDogImages(Dog rootDog) async {
+    final Map<int, Uint8List> imageMap = {};
     final List<Dog> allAncestors = [rootDog];
     
     // Breadth-first collection of all ancestors
@@ -245,7 +250,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
           final file = File(dog.photoPath!);
           if (await file.exists()) {
             final bytes = await file.readAsBytes();
-            imageMap[dog.id] = pw.MemoryImage(bytes);
+            imageMap[dog.id] = bytes;
           }
         } catch (_) {
           // Ignore failed image loads
@@ -263,13 +268,13 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
       final logoFile = profile.localLogoPath != null ? File(profile.localLogoPath!) : null;
       final preloadedImages = await _preloadDogImages(dog);
       
-      final pdf = await CertificateService.generateCertificate(
+      final pdfBytes = await CertificateService.generateCertificate(
         dog: dog,
         kennelProfile: profile,
         logoFile: logoFile,
         preloadedImages: preloadedImages,
       );
-      await CertificateService.printPdf(pdf);
+      await CertificateService.printPdf(pdfBytes);
     } on SqliteException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -291,6 +296,42 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     }
   }
 
+  Future<void> _generateAndShareSocial(Dog dog) async {
+    setState(() => _generatingPdf = true);
+    try {
+      final profile = await ref.read(kennelProfileProvider.future);
+      final logoFile = profile.localLogoPath != null ? File(profile.localLogoPath!) : null;
+      final preloadedImages = await _preloadDogImages(dog);
+      
+      final pdfBytes = await CertificateService.generateCertificate(
+        dog: dog,
+        kennelProfile: profile,
+        logoFile: logoFile,
+        preloadedImages: preloadedImages,
+      );
+
+      // Rasterize the PDF to an image
+      await for (final page in Printing.raster(pdfBytes, pages: [0], dpi: 300)) {
+        final pngBytes = await page.toPng();
+        final tempDir = await getTemporaryDirectory();
+        final file = File(p.join(tempDir.path, 'social_pedigree_${dog.id}.png'));
+        await file.writeAsBytes(pngBytes);
+        
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Check out ${dog.callName}\'s Pedigree! #ZooPed',
+        );
+        break; // Only need the first page
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating image: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _generatingPdf = false);
+    }
+  }
+
   Future<void> _generateAndShareCertificate(Dog dog) async {
     setState(() => _generatingPdf = true);
     try {
@@ -298,16 +339,13 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
       final logoFile = profile.localLogoPath != null ? File(profile.localLogoPath!) : null;
       final preloadedImages = await _preloadDogImages(dog);
       
-      final pdf = await CertificateService.generateCertificate(
+      final pdfBytes = await CertificateService.generateCertificate(
         dog: dog,
         kennelProfile: profile,
         logoFile: logoFile,
         preloadedImages: preloadedImages,
       );
-      final tempDir = await getTemporaryDirectory();
-      final file = File(p.join(tempDir.path, 'zooped_certificate_${dog.id}.pdf'));
-      await file.writeAsBytes(await pdf.save());
-      await CertificateService.sharePdf(file, dog.registeredName);
+      await CertificateService.sharePdf(pdfBytes, dog.registeredName);
     } on SqliteException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -456,37 +494,53 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
               end: Alignment.bottomCenter,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                dog.registeredName,
-                style: TextStyle(
-                  fontSize: isTablet ? 28.0 : 22.0,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.secondaryColor,
-                  letterSpacing: -0.5,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dog.registeredName,
+                      style: TextStyle(
+                        fontSize: isTablet ? 28.0 : 22.0,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.secondaryColor,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6.0),
+                    Row(
+                      children: [
+                        Icon(
+                          dog.sex == 'Male' ? Icons.male : Icons.female,
+                          color: dog.sex == 'Male' ? Colors.blue : Colors.pink,
+                          size: 20.0,
+                        ),
+                        const SizedBox(width: 4.0),
+                        Text(
+                          dog.callName,
+                          style: TextStyle(
+                            fontSize: isTablet ? 18.0 : 16.0,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6.0),
-              Row(
-                children: [
-                  Icon(
-                    dog.sex == 'Male' ? Icons.male : Icons.female,
-                    color: dog.sex == 'Male' ? Colors.blue : Colors.pink,
-                    size: 20.0,
+              if (dog.photoPath != null && File(dog.photoPath!).existsSync())
+                Hero(
+                  tag: 'dog_banner_photo_${dog.id}',
+                  child: CircleAvatar(
+                    radius: isTablet ? 40 : 30,
+                    backgroundImage: ResizeImage(FileImage(File(dog.photoPath!)), width: 150),
+                    onBackgroundImageError: (e, s) => {},
                   ),
-                  const SizedBox(width: 4.0),
-                  Text(
-                    dog.callName,
-                    style: TextStyle(
-                      fontSize: isTablet ? 18.0 : 16.0,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
+                ),
             ],
           ),
         ),
@@ -504,6 +558,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                   height: 200,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  cacheWidth: 800,
                   errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
                 ),
               ),
@@ -517,6 +572,8 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
             spacing: 8.0,
             runSpacing: 10.0,
             children: [
+              if (dog.breed != null && dog.breed!.isNotEmpty)
+                _buildDetailChip(Icons.pets, 'Breed', dog.breed!),
               if (dog.microchipNumber != null && dog.microchipNumber!.isNotEmpty)
                 _buildDetailChip(Icons.memory, 'Chip', dog.microchipNumber!),
               if (dog.dateOfBirth != null)
@@ -527,7 +584,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
               if (dog.registerType != null && dog.registerType!.isNotEmpty)
                 _buildDetailChip(Icons.badge, 'Reg', dog.registerType!),
               if (dog.appraisalScore != null)
-                _buildDetailChip(Icons.military_tech, 'Score', dog.appraisalScore.toString()),
+                _buildAppraisalBadge(dog.appraisalScore!),
               if (dog.inbreedingCoefficient != null)
                 _buildDetailChip(Icons.science, 'COI', '${dog.inbreedingCoefficient}%'),
             ],
@@ -551,18 +608,32 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 14.0),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                      elevation: 0,
                     ),
                   ),
                 ),
-                SizedBox(width: padding * 0.75),
+                SizedBox(width: padding * 0.5),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _generatingPdf ? null : () => _generateAndShareCertificate(dog),
                     icon: _generatingPdf
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.picture_as_pdf, size: 20),
+                    label: const Text('PDF'),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 14.0),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                      side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                ),
+                SizedBox(width: padding * 0.5),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _generatingPdf ? null : () => _generateAndShareSocial(dog),
+                    icon: _generatingPdf
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.share, size: 20),
-                    label: const Text('Share'),
+                    label: const Text('Social'),
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 14.0),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
@@ -614,6 +685,66 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildAppraisalBadge(double score) {
+    Color badgeColor;
+    String label;
+    IconData icon;
+
+    if (score >= 90) {
+      badgeColor = Colors.amber.shade600;
+      label = 'Gold';
+      icon = Icons.emoji_events;
+    } else if (score >= 80) {
+      badgeColor = Colors.blueGrey.shade400;
+      label = 'Silver';
+      icon = Icons.workspace_premium;
+    } else if (score >= 70) {
+      badgeColor = Colors.brown.shade400;
+      label = 'Bronze';
+      icon = Icons.military_tech;
+    } else {
+      badgeColor = Colors.grey.shade600;
+      label = 'Appraised';
+      icon = Icons.verified;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [badgeColor.withValues(alpha: 0.1), badgeColor.withValues(alpha: 0.2)],
+        ),
+        borderRadius: BorderRadius.circular(10.0),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.3), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16.0, color: badgeColor)
+              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .scaleXY(begin: 0.9, end: 1.1, duration: 1.seconds, curve: Curves.easeInOut),
+          const SizedBox(width: 6.0),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: badgeColor,
+              fontSize: 12.0,
+            ),
+          ),
+          Text(
+            score.toStringAsFixed(1),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: badgeColor,
+              fontSize: 13.0,
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn().scale(curve: Curves.easeOutBack);
   }
 
   Widget _buildPhotoGallery(BuildContext context, Dog dog) {
@@ -675,6 +806,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                           child: Image.file(
                             File(photo.photoPath),
                             fit: BoxFit.cover,
+                            cacheWidth: 400,
                             errorBuilder: (context, error, stackTrace) => Container(
                               color: Colors.grey.shade200,
                               child: const Icon(Icons.broken_image, color: Colors.grey),

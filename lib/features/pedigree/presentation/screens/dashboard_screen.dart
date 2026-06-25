@@ -3,28 +3,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/error/error_handler.dart';
 import '../../domain/entities/dog.dart';
 import '../providers/pedigree_providers.dart';
 import '../providers/shared_providers.dart';
 import '../widgets/dog_list_item.dart';
-import '../widgets/upcoming_whelping_widget.dart';
+import '../widgets/upcoming_agenda_widget.dart';
 
 final _searchQueryProvider = StateProvider<String>((ref) => '');
-final _debouncedSearchProvider = Provider<String>((ref) {
-  return ref.watch(_searchQueryProvider);
-});
 
-final dogsProvider = FutureProvider.autoDispose<List<Dog>>((ref) async {
+final dogsProvider = StreamProvider.autoDispose<List<Dog>>((ref) async* {
   ref.keepAlive();
-  final query = ref.watch(_debouncedSearchProvider);
+  final query = ref.watch(_searchQueryProvider);
   final filter = ref.watch(dashboardFilterProvider);
   final repo = ref.watch(pedigreeRepositoryProvider);
 
+  var didCancel = false;
+  ref.onDispose(() => didCancel = true);
+  
+  // Backend debounce to intercept overlapping rapid UI queries
   if (query.isNotEmpty) {
-    return await repo.searchDogs(query);
+    await Future.delayed(const Duration(milliseconds: 150));
+    if (didCancel) return;
   }
-  return await repo.getFilteredDogs(sex: filter.sex, sortBy: filter.sortBy);
+
+  if (query.isNotEmpty) {
+    yield await repo.searchDogs(query);
+  } else {
+    yield* repo.watchFilteredDogs(sex: filter.sex, sortBy: filter.sortBy);
+  }
 });
 
 class _SearchDebouncer {
@@ -72,6 +81,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         centerTitle: false,
         actions: [
           IconButton(
+            icon: const Icon(Icons.analytics),
+            tooltip: 'View Analytics',
+            onPressed: () => context.push('/analytics'),
+          ),
+          IconButton(
             icon: const Icon(Icons.family_restroom),
             tooltip: 'View Litters',
             onPressed: () => context.push('/litters'),
@@ -84,7 +98,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
       body: Column(
         children: [
-          const UpcomingWhelpingWidget(),
+          const UpcomingAgendaWidget(),
           Padding(
             padding: EdgeInsets.all(padding),
             child: Row(
@@ -160,7 +174,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   children: [
                     const Icon(Icons.error_outline, size: 48, color: Colors.red),
                     const SizedBox(height: 16),
-                    Text('Error: $e'),
+                    Text(ErrorHandler.getUserFriendlyMessage(e)),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => ref.invalidate(dogsProvider),
@@ -179,25 +193,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Icons.pets,
                           size: isTablet ? 80.0 : 64.0,
                           color: Colors.grey.shade300,
-                        ),
+                        ).animate(onPlay: (c) => c.repeat(reverse: true)).scaleXY(begin: 0.9, end: 1.1, duration: 1.seconds, curve: Curves.easeInOut),
                         SizedBox(height: padding),
                         Text(
-                          'No dogs found',
+                          'Welcome to ZooPed!',
                           style: TextStyle(
-                            fontSize: isTablet ? 20.0 : 16.0,
-                            color: Colors.grey.shade600,
+                            fontSize: isTablet ? 24.0 : 20.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade700,
                           ),
                         ),
                         const SizedBox(height: 8.0),
                         Text(
-                          'Tap + to add your first dog',
-                          style: TextStyle(
-                            fontSize: isTablet ? 16.0 : 14.0,
-                            color: Colors.grey.shade500,
-                          ),
+                          'Let\'s get your kennel set up.',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 16.0),
                         ),
+                        const SizedBox(height: 32.0),
+                        FilledButton.icon(
+                          onPressed: () => context.push('/settings/kennel'),
+                          icon: const Icon(Icons.store),
+                          label: const Text('1. Set up Kennel Profile'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                          ),
+                        ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0.0),
+                        const SizedBox(height: 16.0),
+                        ElevatedButton.icon(
+                          onPressed: () => context.push('/dog/new'),
+                          icon: const Icon(Icons.add),
+                          label: const Text('2. Add Foundation Dog'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                          ),
+                        ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0.0),
                       ],
-                    ),
+                    ).animate().fadeIn(duration: 500.ms),
                   );
                 }
 
@@ -213,9 +243,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     itemCount: dogs.length,
                     itemBuilder: (context, index) {
                       final dog = dogs[index];
-                      return DogListItem(
-                        dog: dog,
-                        onTap: () => context.push('/dog/${dog.id}'),
+                      return RepaintBoundary(
+                        child: DogListItem(
+                          dog: dog,
+                          onTap: () => context.push('/dog/${dog.id}'),
+                        ),
                       );
                     },
                   );
@@ -226,9 +258,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   itemCount: dogs.length,
                   itemBuilder: (context, index) {
                     final dog = dogs[index];
-                    return DogListItem(
-                      dog: dog,
-                      onTap: () => context.push('/dog/${dog.id}'),
+                    return RepaintBoundary(
+                      child: DogListItem(
+                        dog: dog,
+                        onTap: () => context.push('/dog/${dog.id}'),
+                      ).animate().fadeIn(delay: (index > 15 ? 0 : 50 * index).ms).slideX(begin: 0.1, end: 0.0),
                     );
                   },
                 );

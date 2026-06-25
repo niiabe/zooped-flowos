@@ -42,6 +42,7 @@ class _AddHealthRecordScreenState extends ConsumerState<AddHealthRecordScreen> {
       ),
       body: Form(
         key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: SingleChildScrollView(
           padding: EdgeInsets.all(padding),
           child: Column(
@@ -157,12 +158,21 @@ class _AddHealthRecordScreenState extends ConsumerState<AddHealthRecordScreen> {
       if (_nextDueDate != null) {
         // Schedule notification at 9 AM on the due date
         final scheduleTime = DateTime(_nextDueDate!.year, _nextDueDate!.month, _nextDueDate!.day, 9, 0);
-        await NotificationService().scheduleNotification(
-          id: id.hashCode,
-          title: 'Health Reminder: $_recordType',
-          body: 'Your dog has an upcoming $_recordType appointment.',
-          scheduledDate: scheduleTime,
-        );
+        try {
+          await NotificationService().scheduleNotification(
+            id: id.hashCode,
+            title: 'Health Reminder: $_recordType',
+            body: 'Your dog has an upcoming $_recordType appointment.',
+            scheduledDate: scheduleTime,
+          );
+        } catch (e) {
+          debugPrint('Failed to schedule notification: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Record saved, but failed to schedule reminder notification (check permissions)')),
+            );
+          }
+        }
       }
 
       if (mounted) {

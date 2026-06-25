@@ -8,12 +8,14 @@ class PedigreeCanvas extends StatelessWidget {
   final Dog rootDog;
   final Function(Dog) onDogTap;
   final Function(Dog? childDog, bool isSire, String roleName)? onUnknownTap;
+  final GlobalKey? exportKey;
 
   const PedigreeCanvas({
     super.key,
     required this.rootDog,
     required this.onDogTap,
     this.onUnknownTap,
+    this.exportKey,
   });
 
   @override
@@ -51,11 +53,15 @@ class PedigreeCanvas extends StatelessWidget {
       minScale: 0.2,
       maxScale: 3.0,
       clipBehavior: Clip.hardEdge,
-      child: Padding(
-        padding: EdgeInsets.all(spacing),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: RepaintBoundary(
+        key: exportKey,
+        child: Container(
+          color: Colors.white,
+          child: Padding(
+            padding: EdgeInsets.all(spacing),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Gen1: Root
             SizedBox(
@@ -154,6 +160,8 @@ class PedigreeCanvas extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      ),
       ),
     );
   }

@@ -58,6 +58,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
       ),
       body: Form(
         key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: SingleChildScrollView(
           padding: EdgeInsets.all(padding),
           child: Column(
@@ -540,7 +541,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
         whelpingDate: _whelpingDate!,
         puppiesBornAlive: _puppiesBornAlive,
         puppiesStillborn: _puppiesStillborn,
-        notes: _notesController.text.isEmpty ? null : _notesController.text,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
 
       final puppies = <Dog>[];

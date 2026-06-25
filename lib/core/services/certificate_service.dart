@@ -4,37 +4,102 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/foundation.dart';
 import '../../features/pedigree/domain/entities/dog.dart';
 import '../../features/settings/domain/entities/kennel_profile.dart';
 
+class CertificatePayload {
+  final Dog dog;
+  final KennelProfile kennelProfile;
+  final Uint8List? logoBytes;
+  final Uint8List zoopedLogoBytes;
+  final Map<int, Uint8List> preloadedImages;
+
+  CertificatePayload({
+    required this.dog,
+    required this.kennelProfile,
+    this.logoBytes,
+    required this.zoopedLogoBytes,
+    this.preloadedImages = const {},
+  });
+}
+
 class CertificateService {
-  static Future<pw.Document> generateCertificate({
+  static Future<Uint8List> generateCertificate({
     required Dog dog,
     required KennelProfile kennelProfile,
     File? logoFile,
-    Map<int, pw.MemoryImage> preloadedImages = const {},
+    Map<int, Uint8List> preloadedImages = const {},
   }) async {
-    final pdf = pw.Document();
     final logoBytes = logoFile != null ? await logoFile.readAsBytes() : null;
-    final logoImage = logoBytes != null ? pw.MemoryImage(logoBytes) : null;
+    final zoopedLogoBytes = (await rootBundle.load('assets/images/logo.png')).buffer.asUint8List();
 
-    final baseColor = PdfColor.fromHex('#2F5E36'); // Elegant dark green
+    final payload = CertificatePayload(
+      dog: dog,
+      kennelProfile: kennelProfile,
+      logoBytes: logoBytes,
+      zoopedLogoBytes: zoopedLogoBytes,
+      preloadedImages: preloadedImages,
+    );
+
+    return await compute(_buildPdfIsolate, payload);
+  }
+
+  static Future<Uint8List> _buildPdfIsolate(CertificatePayload payload) async {
+    final pdf = pw.Document();
+    final logoImage = payload.logoBytes != null ? pw.MemoryImage(payload.logoBytes!) : null;
+    final zoopedLogoImage = pw.MemoryImage(payload.zoopedLogoBytes);
+
+    final Map<int, pw.MemoryImage> memoryImages = payload.preloadedImages.map(
+      (key, value) => MapEntry(key, pw.MemoryImage(value)),
+    );
+
+    final dog = payload.dog;
+    final kennelProfile = payload.kennelProfile;
+
+    final brandHex = kennelProfile.brandColorHex ?? '#2F5E36';
+    final baseColor = PdfColor.fromHex(brandHex);
     final secondaryColor = PdfColor.fromHex('#4A4A4A'); // Dark grey
     final lightGrey = PdfColor.fromHex('#E8E8E8');
 
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.all(32),
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4.landscape,
+          margin: const pw.EdgeInsets.all(32),
+          buildBackground: (context) => pw.FullPage(
+            ignoreMargins: true,
+            child: pw.Container(color: PdfColors.white),
+          ),
+        ),
         build: (context) {
-          return pw.Container(
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: baseColor, width: 3),
-            ),
-            padding: const pw.EdgeInsets.all(16),
-            child: pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
+          return pw.Stack(
+            children: [
+              // Background Watermark
+              pw.Positioned.fill(
+                child: pw.Center(
+                  child: pw.Opacity(
+                    opacity: 0.15,
+                    child: pw.Image(zoopedLogoImage, width: 350),
+                  ),
+                ),
+              ),
+              // Page Border
+              pw.Positioned.fill(
+                child: pw.Container(
+                  decoration: _getBorderDecoration(kennelProfile.certificateBorderTheme ?? 'Classic', baseColor),
+                ),
+              ),
+              // Foreground content
+              pw.Positioned.fill(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(20),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
                 // LEFT PANEL: Kennel & Dog Info (35% width)
                 pw.Expanded(
                   flex: 35,
@@ -97,14 +162,14 @@ class CertificateService {
                       pw.SizedBox(height: 8),
 
                       // Primary Dog Info
-                      if (preloadedImages.containsKey(dog.id))
+                      if (memoryImages.containsKey(dog.id))
                         pw.Container(
                           width: 100,
                           height: 100,
                           decoration: pw.BoxDecoration(
                             shape: pw.BoxShape.circle,
                             image: pw.DecorationImage(
-                              image: preloadedImages[dog.id]!,
+                              image: memoryImages[dog.id]!,
                               fit: pw.BoxFit.cover,
                             ),
                           ),
@@ -124,6 +189,7 @@ class CertificateService {
                         'Call Name: "${dog.callName}"',
                         style: pw.TextStyle(fontSize: 12, fontStyle: pw.FontStyle.italic),
                       ),
+
                       pw.SizedBox(height: 12),
 
                       _buildDogDetailGrid(dog),
@@ -152,24 +218,29 @@ class CertificateService {
                       ),
                       pw.SizedBox(height: 16),
                       pw.Expanded(
-                        child: _buildTree(dog, preloadedImages, baseColor),
+                        child: _buildTree(dog, memoryImages, baseColor),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-          );
-        },
-      ),
+          ),
+        ),
+      ],
     );
+    },
+  ),
+);
 
-    return pdf;
+    return await pdf.save();
   }
 
   static pw.Widget _buildDogDetailGrid(Dog dog) {
     return pw.Column(
       children: [
+        if (dog.breed != null)
+          _buildInfoRow('Breed', dog.breed!),
         _buildInfoRow('Sex', dog.sex),
         if (dog.dateOfBirth != null)
           _buildInfoRow('DOB', DateFormat('yyyy-MM-dd').format(dog.dateOfBirth!)),
@@ -357,14 +428,54 @@ class CertificateService {
     );
   }
 
-  static Future<void> printPdf(pw.Document pdf) async {
+  static pw.BoxDecoration _getBorderDecoration(String theme, PdfColor baseColor) {
+    switch (theme) {
+      case 'Modern':
+        return pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey400, width: 1),
+        );
+      case 'Elegant':
+        return pw.BoxDecoration(
+          border: pw.Border(
+            top: pw.BorderSide(color: baseColor, width: 4),
+            bottom: pw.BorderSide(color: baseColor, width: 4),
+            left: pw.BorderSide(color: baseColor, width: 4),
+            right: pw.BorderSide(color: baseColor, width: 4),
+          ),
+        );
+      case 'Regal':
+        return pw.BoxDecoration(
+          border: pw.Border(
+            top: pw.BorderSide(color: baseColor, width: 6),
+            bottom: pw.BorderSide(color: baseColor, width: 6),
+            left: pw.BorderSide(color: baseColor, width: 2),
+            right: pw.BorderSide(color: baseColor, width: 2),
+          ),
+        );
+      case 'Bold':
+        return pw.BoxDecoration(
+          border: pw.Border.all(color: baseColor, width: 8),
+        );
+      case 'Classic':
+      default:
+        return pw.BoxDecoration(
+          border: pw.Border.all(color: baseColor, width: 3),
+        );
+    }
+  }
+
+  static Future<void> printPdf(Uint8List pdfBytes) async {
     await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
+      onLayout: (PdfPageFormat format) async => pdfBytes,
       name: 'Pedigree_Certificate',
     );
   }
 
-  static Future<void> sharePdf(File file, String dogName) async {
+  static Future<void> sharePdf(Uint8List pdfBytes, String dogName) async {
+    final tempDir = await getTemporaryDirectory();
+    final file = File(p.join(tempDir.path, 'Pedigree_Certificate_$dogName.pdf'));
+    await file.writeAsBytes(pdfBytes);
+
     await Share.shareXFiles(
       [XFile(file.path)],
       text: 'Pedigree Certificate for $dogName',
