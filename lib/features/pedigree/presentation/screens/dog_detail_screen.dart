@@ -369,53 +369,92 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
 
   Widget _buildOffspringTab(BuildContext context, Dog dog) {
     final offspringAsync = ref.watch(dogOffspringProvider(dog.id));
-    
-    return offspringAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Error: $err'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => ref.invalidate(dogOffspringProvider(dog.id)),
-              child: const Text('Retry'),
-            ),
-          ],
+    final littersAsync = ref.watch(dogLittersProvider(dog.id));
+
+    return CustomScrollView(
+      slivers: [
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text('Litters', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
         ),
-      ),
-      data: (offspring) {
-        if (offspring.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.pets, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                Text('No offspring recorded yet', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
-              ],
-            ),
-          );
-        }
-        
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: offspring.length,
-          itemBuilder: (context, index) {
-            final puppy = offspring[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.pets)),
-                title: Text(puppy.callName),
-                subtitle: Text(puppy.registeredName),
-                onTap: () => context.push('/dog/${puppy.id}'),
+        littersAsync.when(
+          loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+          error: (err, stack) => SliverToBoxAdapter(child: Text('Error: $err')),
+          data: (litters) {
+            if (litters.isEmpty) {
+              return const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text('No litters recorded yet.', style: TextStyle(color: Colors.grey)),
+                ),
+              );
+            }
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final litter = litters[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.family_restroom, color: AppTheme.primaryColor),
+                      ),
+                      title: Text('Whelped: ${DateFormat('yyyy-MM-dd').format(litter.whelpingDate)}'),
+                      subtitle: Text('${litter.totalPuppiesBorn} puppies'),
+                    ),
+                  );
+                },
+                childCount: litters.length,
               ),
             );
           },
-        );
-      },
+        ),
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+            child: Text('Offspring', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+        ),
+        offspringAsync.when(
+          loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+          error: (err, stack) => SliverToBoxAdapter(child: Text('Error: $err')),
+          data: (offspring) {
+            if (offspring.isEmpty) {
+              return const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text('No offspring assigned yet.', style: TextStyle(color: Colors.grey)),
+                ),
+              );
+            }
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final puppy = offspring[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    child: ListTile(
+                      leading: const CircleAvatar(child: Icon(Icons.pets)),
+                      title: Text(puppy.callName),
+                      subtitle: Text(puppy.registeredName),
+                      onTap: () => context.push('/dog/${puppy.id}'),
+                    ),
+                  );
+                },
+                childCount: offspring.length,
+              ),
+            );
+          },
+        ),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
+      ],
     );
   }
 
