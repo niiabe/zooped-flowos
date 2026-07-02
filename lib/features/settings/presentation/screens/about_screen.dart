@@ -31,6 +31,27 @@ class _AboutScreenState extends State<AboutScreen> {
 
   static const _changelog = [
     (
+      version: '1.7.0+14',
+      date: '2026-06-21',
+      entries: [
+        'Architectural Scaling & Optimization Update',
+        'Memory Optimization: Converted FutureProvider database streams to autoDispose to instantly release memory resources',
+        'Isolate Offloading: Migrated the heavy A4 Pedigree PDF Generator and compression logic entirely off the UI thread onto a background compute() isolate',
+        'Data Security Integration: Hardened the SQLite persistence layer with comprehensive input boundary sanitization',
+        'N+1 Database Query Fix: Re-engineered the lineage tree traversal engine away from an O(N) recursive loop to a batched, Depth-based O(Depth) query',
+        'File Storage Permanence: Migrated all dog and kennel images automatically into a persistent, un-deletable app sandbox',
+        'UX Search Debouncing: Installed an asynchronous backend Future.delayed cancellation layer on the Dashboard Search Bar',
+      ],
+    ),
+    (
+      version: '1.6.0+13',
+      date: '2026-06-21',
+      entries: [
+        'Massive upgrade to PDF Export: 3-generation pedigree certificate with custom borders, colors, signatures, and breeder logos',
+        'Whelped date removed from certificate',
+      ],
+    ),
+    (
       version: '1.4.1+11',
       date: '2026-06-20',
       entries: [

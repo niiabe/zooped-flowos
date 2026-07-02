@@ -61,7 +61,7 @@ class SettingsScreen extends ConsumerWidget {
               context,
               icon: Icons.info_outline,
               title: 'About ZooPed',
-              subtitle: 'Version 1.4.1+11',
+              subtitle: 'App version and information',
               color: Colors.blue.shade700,
               onTap: () => context.push('/about'),
             ),
