@@ -6,7 +6,7 @@
 
 A Flutter Android application for tracking dog pedigrees, designed for professional breeders and kennel clubs.
 
-**Package:** `com.zooped.niiabe` | **Version:** 1.4.1+11 | **License:** Private
+**Package:** `com.zooped.niiabe` | **Version:** 1.7.0+14 | **License:** Private
 
 ## Platform
 
@@ -15,15 +15,24 @@ A Flutter Android application for tracking dog pedigrees, designed for professio
 
 ## Features
 
-- **Dog Identity Ledger** - Register and manage dogs with call names, registered names, microchip numbers, breed, color, and more
+- **Dog Identity Ledger** - Register and manage dogs with call names, registered names, microchip numbers, breed, color, sale status, and more
+- **Dog Photo Gallery** - Multiple photos per dog with captions and date ordering
 - **Interactive 3-Generation Pedigree Tree** - Zoomable/pannable InteractiveViewer canvas displaying sire/dam lineage with tap-to-navigate to ancestors
 - **3-Generation PDF Export** - Generate professional A4 landscape pedigree certificates for printing or sharing
+- **Puppy Contract PDF** - Generate a Puppy Bill of Sale & Contract for buyers
 - **Litter Tracking** - Record matings, whelping dates, and auto-create puppy profiles with inherited parentage
-- **Custom Kennel Branding** - Upload kennel logo and configure breeder profile (logo-driven theme)
-- **CSV Backup & Import** - Export and import all dog/litter data as CSV files from the app documents directory
-- **Dynamic Theming** - Switch between Dark/Light modes and multiple accent colors
-- **Matchmaker & COI Prediction** - Simulate breeding pairs with 5-generation inbreeding coefficient calculation
+- **Health Records** - Track vaccines, deworming, vet visits with push notification reminders for upcoming due dates
+- **Show Records** - Log event names, dates, judges, placements, and titles awarded
+- **Mating Records** - Track sire/dam pairs with dates, used for whelping predictions
 - **Heat Tracker** - Log and monitor female heat cycles with upcoming whelping alerts
+- **Upcoming Agenda** - Combined view of predicted whelpings and next heat cycles, sorted chronologically
+- **Matchmaker & COI Prediction** - Simulate breeding pairs with 5-generation inbreeding coefficient calculation
+- **Kennel Analytics** - Dashboard with total dogs, male/female breakdown, litter stats, breed distribution
+- **Financial Tracking** - Revenue/expense tracking by category with net profit/loss summary
+- **Custom Kennel Branding** - Upload kennel logo and configure breeder profile (logo-driven theme)
+- **CSV Backup & Restore** - Export and import all data as CSV files; local SQLite backup/restore
+- **Dynamic Theming** - Switch between Dark/Light/System modes and multiple accent colors
+- **Dashboard Search & Filter** - Search by name or microchip, filter by sex, sort by name/recent/age
 - **Offline-First** - All data stored locally using SQLite via Drift
 
 ## Screenshots
@@ -42,6 +51,7 @@ A Flutter Android application for tracking dog pedigrees, designed for professio
 | Navigation | go_router |
 | Database | Drift (over SQLite) |
 | PDF Generation | pdf + printing |
+| Push Notifications | flutter_local_notifications |
 | Image Picker | image_picker |
 | URL Launcher | url_launcher |
 | App Icon | flutter_launcher_icons |
@@ -80,20 +90,21 @@ Clean Architecture with strict layer separation:
 ```
 lib/
 ├── core/
-│   ├── database/       # Drift database definition
-│   ├── router/         # go_router configuration
-│   ├── services/       # CertificateService, CsvService
-│   ├── theme/          # App theme (Green + Charcoal)
-│   └── utils/          # Responsive utility
+│   ├── database/       # Drift database definition & tables
+│   ├── router/         # go_router configuration (14 routes)
+│   ├── services/       # certificate, contract, file_storage, notification
+│   ├── theme/          # App theme (Green + Charcoal) & theme provider
+│   ├── utils/          # Responsive utility
+│   └── error/          # Error handler & exceptions
 └── features/
     ├── pedigree/
-    │   ├── domain/     # Entities, Repositories (abstract), Use Cases
-    │   ├── data/       # Drift models, Repository implementations
-    │   └── presentation/ # Screens, Widgets, Providers
+    │   ├── domain/     # Entities (dog, litter), repository (abstract), use cases (COI)
+    │   ├── data/       # Drift models, repository implementations
+    │   └── presentation/ # 11 screens, 6 widgets, 2 providers
     └── settings/
-        ├── domain/     # KennelProfile entity, Settings Repository
+        ├── domain/     # KennelProfile entity, repository (abstract), use cases
         ├── data/       # Repository implementation
-        └── presentation/ # Settings screen, Providers
+        └── presentation/ # 6 screens, 1 provider
 ```
 
 ## Getting Started
@@ -140,24 +151,34 @@ flutter build apk --release
 
 ### Tables
 
-- **dogs** - Core dog records with self-referencing sire/dam foreign keys
+- **dogs** - Core dog records with self-referencing sire/dam foreign keys and sale status
+- **dog_photos** - Multiple photos per dog with captions and timestamps
 - **litters** - Breeding events linking sire/dam with whelping outcomes
-- **transactions** - Kennel financial tracking (revenue/expenses)
+- **health_records** - Vaccinations, deworming, vet visits with next due date tracking
+- **show_records** - Event logs with dates, judges, placements, titles
+- **transactions** - Kennel financial tracking (revenue/expenses by category)
 - **heat_cycles** - Female dog heat cycle logging
 - **matings** - Mating records for upcoming whelping predictions
 - **kennel_profile** - Single-row kennel branding configuration
 
 ## UI Screens
 
-1. **Dashboard** - Search bar, dog list, quick-add FAB, litter list link
-2. **Dog Detail** - Identity card, photo, interactive pedigree canvas with PDF export/share
-3. **Dog Edit** - Edit existing dog profiles with photo upload
-4. **Litter List** - Browse all registered litters with details
-5. **Litter Form** - 3-step wizard (parents -> dates -> puppy roster)
-6. **Matchmaker** - Sire/dam selection with real-time COI calculation and hypothetical pedigree preview
-7. **Heat Tracker** - Expansion cards for each female with logged heat cycles
-8. **Settings** - Kennel profile, backup/migration, appearance/theming, about
-9. **About** - Developer info, links, in-app changelog
+1. **Dashboard** - Search bar, dog list with sale status badges, quick-add FAB, upcoming agenda (whelpings + heat cycles)
+2. **Dog Detail** - Identity card, photo gallery, interactive pedigree canvas with PDF export/share, health/show records tabs
+3. **Add/Edit Dog** - Create or edit dog profiles with photo upload, sale status, color, microchip, etc.
+4. **Health Record** - Log vaccines, deworming, vet visits with next due date and notification scheduling
+5. **Show Record** - Log event name, date, judge, placement, title awarded
+6. **Litter List** - Browse all registered litters with details
+7. **Litter Form** - 3-step wizard (parents -> dates -> puppy roster)
+8. **Matchmaker** - Sire/dam selection with real-time COI calculation and hypothetical pedigree preview
+9. **Heat Tracker** - Expansion cards for each female with logged heat cycles
+10. **Analytics** - Kennel statistics overview (dog count, breed distribution, litter averages)
+11. **Financials** - Revenue/expense list with net summary and add transaction
+12. **Settings** - Kennel profile, backup/migration, appearance/theming, financials, about
+13. **Kennel Profile** - 4-tab form (Identity, Breeding, Contact, Appearance) with logo upload
+14. **Backup & Migration** - SQLite backup/restore and CSV export/import
+15. **Appearance** - Dark/Light/System mode, accent color picker
+16. **About** - Developer info, links, in-app changelog
 
 ## Changelog
 
