@@ -8,6 +8,10 @@ A Flutter Android application for tracking dog pedigrees, designed for professio
 
 **Package:** `com.zooped.niiabe` | **Version:** 1.8.0+15 | **License:** Private
 
+## Download
+
+Get the latest signed APK from the [GitHub Releases page](https://github.com/niiabe/zooped-flowos/releases). You can also update from within the app via the built-in In-App Updates feature.
+
 ## Platform
 
 - **Android Only** - Built exclusively for Android devices
