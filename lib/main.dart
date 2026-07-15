@@ -7,6 +7,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/error/error_handler.dart';
+import 'features/settings/presentation/widgets/update_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,6 +67,8 @@ class ZooPedApp extends ConsumerWidget {
       darkTheme: AppTheme.getDarkTheme(themeState.primaryColor),
       themeMode: themeState.themeMode,
       routerConfig: AppRouter.router,
+      builder: (context, child) =>
+          UpdateGate(child: child ?? const SizedBox.shrink()),
     );
   }
 }

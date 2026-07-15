@@ -31,6 +31,16 @@ class _AboutScreenState extends State<AboutScreen> {
 
   static const _changelog = [
     (
+      version: '1.8.0+15',
+      date: '2026-07-15',
+      entries: [
+        'In-App Update Checker: check for new versions from Settings > App Updates, then download and install the signed APK directly in the app',
+        'Automatic launch prompt when a newer GitHub release is available, with release notes and Update / Later / Skip options',
+        'Skip this version support so the launch prompt won\'t nag you about a release you dismissed',
+        'Automated GitHub Actions release pipeline that builds, signs, verifies, and publishes the APK on every version tag',
+      ],
+    ),
+    (
       version: '1.7.0+14',
       date: '2026-06-21',
       entries: [

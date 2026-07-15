@@ -59,6 +59,15 @@ class SettingsScreen extends ConsumerWidget {
             SizedBox(height: padding),
             _buildSectionCard(
               context,
+              icon: Icons.system_update,
+              title: 'App Updates',
+              subtitle: 'Check for and install the latest version',
+              color: Colors.green.shade700,
+              onTap: () => context.push('/settings/update'),
+            ),
+            SizedBox(height: padding),
+            _buildSectionCard(
+              context,
               icon: Icons.info_outline,
               title: 'About ZooPed',
               subtitle: 'App version and information',

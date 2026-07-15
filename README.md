@@ -6,7 +6,7 @@
 
 A Flutter Android application for tracking dog pedigrees, designed for professional breeders and kennel clubs.
 
-**Package:** `com.zooped.niiabe` | **Version:** 1.7.0+14 | **License:** Private
+**Package:** `com.zooped.niiabe` | **Version:** 1.8.0+15 | **License:** Private
 
 ## Platform
 
@@ -33,6 +33,7 @@ A Flutter Android application for tracking dog pedigrees, designed for professio
 - **CSV Backup & Restore** - Export and import all data as CSV files; local SQLite backup/restore
 - **Dynamic Theming** - Switch between Dark/Light/System modes and multiple accent colors
 - **Dashboard Search & Filter** - Search by name or microchip, filter by sex, sort by name/recent/age
+- **In-App Updates** - Checks GitHub Releases for new versions, downloads the signed APK, and installs it directly from the app (with launch-time prompt and skip-version support)
 - **Offline-First** - All data stored locally using SQLite via Drift
 
 ## Screenshots

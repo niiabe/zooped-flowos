@@ -5,6 +5,15 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0+15] - 2026-07-15
+
+### Added
+
+- **In-App Update Checker:** ZooPed now checks GitHub Releases for newer versions directly from **Settings -> App Updates**. When an update is available, the app downloads the signed APK with live progress and launches the installer, so you can update without visiting the browser.
+- **Automatic Launch Prompt:** On startup the app silently checks for updates and, when a newer release is found, shows a non-intrusive dialog with the release notes and Update / Later / Skip options.
+- **Skip This Version:** Users can dismiss a specific version so the launch prompt won't nag them again, while the manual updater still lets them install it later.
+- **Automated Release Pipeline:** Added a GitHub Actions workflow that builds and signs the release APK, verifies the APK signature against the release keystore, and publishes a GitHub Release whenever a version tag (e.g. `v1.8.0`) is pushed. Supports a manual "build & verify only" run for testing.
+
 ## [1.7.0+14] - 2026-06-21
 
 ### Changed

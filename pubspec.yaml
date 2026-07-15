@@ -2,7 +2,7 @@ name: zooped
 description: "Zoo Pedigree - Dog Pedigree Tracking App"
 publish_to: 'none'
 
-version: 1.7.0+14
+version: 1.8.0+15
 
 environment:
   sdk: ^3.12.0
@@ -42,6 +42,10 @@ dependencies:
   rxdart: ^0.28.0
   package_info_plus: ^9.0.1
   flutter_animate: ^4.5.2
+
+  # In-App Updater (GitHub Releases)
+  http: ^1.2.2
+  open_filex: ^4.5.0
 
 dev_dependencies:
   flutter_test:

@@ -10,6 +10,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/kennel_profile_screen.dart';
 import '../../features/settings/presentation/screens/backup_migration_screen.dart';
 import '../../features/settings/presentation/screens/about_screen.dart';
+import '../../features/settings/presentation/screens/update_screen.dart';
 import '../../features/settings/presentation/screens/appearance_screen.dart';
 import '../../features/settings/presentation/screens/financials_screen.dart';
 import '../../features/settings/presentation/screens/add_transaction_screen.dart';
@@ -137,6 +138,12 @@ class AppRouter {
         path: '/matchmaker',
         builder: (BuildContext context, GoRouterState state) {
           return const MatchmakerScreen();
+        },
+      ),
+      GoRoute(
+        path: '/settings/update',
+        builder: (BuildContext context, GoRouterState state) {
+          return const UpdateScreen();
         },
       ),
       GoRoute(
