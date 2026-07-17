@@ -16,7 +16,7 @@
 
 <p align="center">
   <b>Package:</b> <code>com.zooped.niiabe</code> &nbsp;|&nbsp;
-  <b>Version:</b> 1.8.0+15 &nbsp;|&nbsp;
+  <b>Version:</b> 1.9.0+16 &nbsp;|&nbsp;
   <b>License:</b> Private
 </p>
 
@@ -55,7 +55,7 @@
 - **Kennel Analytics** — Dashboard with total dogs, male/female breakdown, litter stats, and breed distribution.
 - **Financial Tracking** — Revenue/expense tracking by category with net profit/loss summary.
 - **Custom Kennel Branding** — Upload kennel logo and configure breeder profile (logo-driven theme).
-- **CSV Backup & Restore** — Export and import all data as CSV files; local SQLite backup/restore.
+- **Cloud & Local Backup System** — Export full `.zip` backups (Database + Media) directly to Google Drive or local storage, and seamlessly restore them to any device.
 - **Dynamic Theming** — Switch between Dark/Light/System modes and multiple accent colors.
 - **Dashboard Search & Filter** — Search by name or microchip, filter by sex, sort by name/recent/age.
 - **In-App Updates** — Checks GitHub Releases for new versions, downloads the signed APK, and installs it directly from the app.

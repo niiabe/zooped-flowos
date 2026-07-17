@@ -31,6 +31,15 @@ class _AboutScreenState extends State<AboutScreen> {
 
   static const _changelog = [
     (
+      version: '1.9.0+16',
+      date: '2026-07-16',
+      entries: [
+        'Added Full Google Drive Backup & Restore functionality from the Settings screen',
+        'Added option to include or exclude media (images/videos) from the backup file',
+        'Revamped Litters & Offspring UI: Puppies are now neatly grouped into expandable folders under their respective litters',
+      ],
+    ),
+    (
       version: '1.8.0+15',
       date: '2026-07-15',
       entries: [
