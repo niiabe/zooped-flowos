@@ -155,7 +155,7 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
             SizedBox(height: padding),
 
             SwitchListTile(
-              title: const Text('Include Images in Backup'),
+              title: const Text('Backup Media (Images and Videos)'),
               subtitle: const Text('Turn off to backup only the database (smaller file size)'),
               value: _includeMedia,
               onChanged: (val) {
@@ -171,7 +171,7 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
               child: ElevatedButton.icon(
                 onPressed: () => _exportDatabase(context),
                 icon: const Icon(Icons.upload_file),
-                label: Text('Export Backup (.zip) ${_includeMedia ? "(Database + Images)" : "(Database Only)"}'),
+                label: Text('Export Backup (.zip) ${_includeMedia ? "(Database + Media)" : "(Database Only)"}'),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 12.0),
                 ),
