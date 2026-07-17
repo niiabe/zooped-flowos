@@ -29,11 +29,20 @@ class BackupService {
       encoder.create(zipPath);
 
       // Add database
-      encoder.addFile(dbFile);
+      encoder.addFile(dbFile, 'zooped.sqlite');
 
       // Add images if they exist and includeMedia is true
       if (includeMedia && await imagesDir.exists()) {
-        encoder.addDirectory(imagesDir);
+        final files = imagesDir.listSync(recursive: true);
+        for (final file in files) {
+          if (file is File) {
+            // This will create a path like 'zooped_images/filename.jpg'
+            final relativePath = p.relative(file.path, from: appDir.path);
+            // On Windows p.relative uses '\', so ensure zip uses '/'
+            final zipEntryName = relativePath.replaceAll('\\', '/');
+            encoder.addFile(file, zipEntryName);
+          }
+        }
       }
 
       encoder.close();

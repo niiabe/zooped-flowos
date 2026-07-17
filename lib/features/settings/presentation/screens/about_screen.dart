@@ -31,9 +31,10 @@ class _AboutScreenState extends State<AboutScreen> {
 
   static const _changelog = [
     (
-      version: '1.9.1+17',
+      version: '1.9.2+18',
       date: '2026-07-16',
       entries: [
+        'Bug Fix: Fixed an issue where backup files exported with absolute paths causing them to appear empty during restore',
         'Added Full Google Drive Backup & Restore functionality from the Settings screen',
         'Added option to include or exclude media (images/videos) from the backup file',
         'Revamped Litters & Offspring UI: Puppies are now neatly grouped into expandable folders under their respective litters',
