@@ -19,6 +19,7 @@ class BackupMigrationScreen extends ConsumerStatefulWidget {
 class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
   String _dbSize = 'Calculating...';
   bool _isVacuuming = false;
+  bool _includeMedia = true;
 
   @override
   void initState() {
@@ -153,12 +154,24 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
             ),
             SizedBox(height: padding),
 
+            SwitchListTile(
+              title: const Text('Include Images in Backup'),
+              subtitle: const Text('Turn off to backup only the database (smaller file size)'),
+              value: _includeMedia,
+              onChanged: (val) {
+                setState(() => _includeMedia = val);
+              },
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppTheme.primaryColor,
+            ),
+            SizedBox(height: padding),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () => _exportDatabase(context),
                 icon: const Icon(Icons.upload_file),
-                label: const Text('Export Full Backup (.zip) (Database + Images)'),
+                label: Text('Export Backup (.zip) ${_includeMedia ? "(Database + Images)" : "(Database Only)"}'),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 12.0),
                 ),
@@ -193,7 +206,7 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
 
   Future<void> _exportDatabase(BuildContext context) async {
     setState(() => _isVacuuming = true);
-    final success = await BackupService.createAndShareBackup();
+    final success = await BackupService.createAndShareBackup(includeMedia: _includeMedia);
     setState(() => _isVacuuming = false);
     
     if (!success && context.mounted) {

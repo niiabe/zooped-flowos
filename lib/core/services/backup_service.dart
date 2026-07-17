@@ -8,8 +8,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 
 class BackupService {
-  /// Compresses the database and images into a zip file and shares it.
-  static Future<bool> createAndShareBackup() async {
+  /// Compresses the database and optionally images into a zip file and shares it.
+  static Future<bool> createAndShareBackup({bool includeMedia = true}) async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
       final dbFile = File(p.join(appDir.path, 'zooped.sqlite'));
@@ -31,8 +31,8 @@ class BackupService {
       // Add database
       encoder.addFile(dbFile);
 
-      // Add images if they exist
-      if (await imagesDir.exists()) {
+      // Add images if they exist and includeMedia is true
+      if (includeMedia && await imagesDir.exists()) {
         encoder.addDirectory(imagesDir);
       }
 
