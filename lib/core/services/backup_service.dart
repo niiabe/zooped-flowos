@@ -56,7 +56,7 @@ class BackupService {
   /// NOTE: This replaces current data. App should be restarted or DB refreshed after this.
   static Future<bool> restoreBackup() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
       );

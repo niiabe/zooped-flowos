@@ -71,11 +71,22 @@ class _AboutScreenState extends State<AboutScreen> {
       ],
     ),
     (
+      version: '1.5.0+12',
+      date: '2026-06-21',
+      entries: [
+        'Predictive Breed Input: the Breed field now auto-completes breeds from your Kennel Profile as you type',
+        'Dynamic Versioning: the About screen reads the version number dynamically from the build configuration',
+        'Social Pedigree Sharing: the Social share button now shares a rasterized image of the PDF certificate instead of a raw canvas screenshot',
+        'Breed information is now visible throughout the app (Dashboard, Dog Details, Certificate, Analytics)',
+        'Fixed transparent background on the generated social share image',
+        'Cleaned up the PDF Certificate watermark to only show the ZooPed logo',
+      ],
+    ),
+    (
       version: '1.4.1+11',
       date: '2026-06-20',
       entries: [
         'Restored the Heat Tracker screen which was incorrectly displaying the Matchmaker tab',
-        'Litters list now auto-refreshes instantly upon returning from the Add Litter screen',
         'Litters list now auto-refreshes instantly upon returning from the Add Litter screen',
         'Enabled global live input validation (e.g., Microchip Number warns instantly while typing)',
         'Stripped 10+ older historical changelog data points to reduce app bundle weight',
@@ -97,6 +108,17 @@ class _AboutScreenState extends State<AboutScreen> {
       entries: [
         'Fixed critical bug where adding a missing parent via pedigree canvas deleted the other parent',
         'Dogs added directly from pedigree canvas now properly default to "Not Owned" sale status',
+      ],
+    ),
+    (
+      version: '1.4.0+8',
+      date: '2026-06-20',
+      entries: [
+        'Added "Not Owned" option to sale status dropdowns to categorize non-owned parent dogs in pedigrees',
+        'Pedigree PDF Watermark: added a large ZooPed logo and paw prints as a background watermark on exported certificates',
+        'Dog Profile Banner Image: the dog\'s profile picture now displays as a circular avatar in the Dog Detail top banner',
+        'Filtered "Not Owned" dogs from the main kennel dashboard list and search results',
+        'Enforced strict numeric input formatting on Microchip, Phone, and Financial fields',
       ],
     ),
 

@@ -5,6 +5,14 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0+16] - 2026-07-16
+
+### Added
+
+- **Full Google Drive Backup & Restore:** Added complete Google Drive Backup & Restore functionality accessible directly from the Settings screen, so you can securely store and recover your entire kennel in the cloud.
+- **Selective Media Backup:** Added an option to include or exclude media (images/videos) from the backup file, giving you control over backup size and speed.
+- **Revamped Litters & Offspring UI:** Puppies are now neatly grouped into expandable folders under their respective litters, making large litters far easier to navigate.
+
 ## [1.8.0+15] - 2026-07-15
 
 ### Added
