@@ -46,6 +46,8 @@ dependencies:
   # In-App Updater (GitHub Releases)
   http: ^1.2.2
   open_filex: ^4.5.0
+  archive: ^4.0.9
+  file_picker: ^11.0.2
 
 dev_dependencies:
   flutter_test:

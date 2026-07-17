@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/services/backup_service.dart';
 import '../../../pedigree/presentation/providers/pedigree_providers.dart';
 
 class BackupMigrationScreen extends ConsumerStatefulWidget {
@@ -157,7 +158,7 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
               child: ElevatedButton.icon(
                 onPressed: () => _exportDatabase(context),
                 icon: const Icon(Icons.upload_file),
-                label: const Text('Export Database File (.sqlite)'),
+                label: const Text('Export Full Backup (.zip) (Database + Images)'),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 12.0),
                 ),
@@ -169,7 +170,7 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
               child: OutlinedButton.icon(
                 onPressed: () => _importDatabase(context),
                 icon: const Icon(Icons.download),
-                label: const Text('Restore Database from File'),
+                label: const Text('Restore Full Backup from Zip'),
                 style: OutlinedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 12.0),
                 ),
@@ -191,39 +192,14 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
   }
 
   Future<void> _exportDatabase(BuildContext context) async {
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      final dbFile = File(p.join(dir.path, 'zooped.sqlite'));
-      
-      if (!await dbFile.exists()) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No database found to export.')),
-          );
-        }
-        return;
-      }
-
-      final backupName = 'zooped_backup_${DateTime.now().toIso8601String().replaceAll(':', '-').split('.').first}.sqlite';
-      
-      // We copy it to a temporary file with a nice name to share
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File(p.join(tempDir.path, backupName));
-      await dbFile.copy(tempFile.path);
-
-      await Share.shareXFiles(
-        [XFile(tempFile.path)],
-        text: 'ZooPed Database Backup',
-        subject: 'ZooPed Backup',
+    setState(() => _isVacuuming = true);
+    final success = await BackupService.createAndShareBackup();
+    setState(() => _isVacuuming = false);
+    
+    if (!success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to create backup.')),
       );
-      
-      _calculateDbSize();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error exporting: $e')),
-        );
-      }
     }
   }
 
@@ -236,11 +212,9 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('Restore from Backup?'),
           content: const Text(
-            'WARNING: This will completely replace your current database with the backup file. '
+            'WARNING: This will completely replace your current database and images with the backup file. '
             'Any data added since the backup will be lost!\n\n'
-            'Please manually copy the backup .sqlite file into the app\'s documents directory '
-            'and name it "zooped.sqlite" to restore, then restart the app. '
-            '(In-app restore requires file picker integration which is beyond this scope).'
+            'Do you want to proceed and select a backup .zip file?'
           ),
           actions: [
             TextButton(
@@ -250,18 +224,32 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('I Understand'),
+              child: const Text('Select Backup'),
             ),
           ],
         ),
       );
 
       if (confirmed == true && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please manually replace the file and restart.')),
-        );
+        setState(() => _isVacuuming = true);
+        final success = await BackupService.restoreBackup();
+        setState(() => _isVacuuming = false);
+        
+        if (context.mounted) {
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Restore successful! Please completely restart the app for changes to take effect.')),
+            );
+            _calculateDbSize();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Restore failed or was canceled.')),
+            );
+          }
+        }
       }
     } catch (e) {
+      setState(() => _isVacuuming = false);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error importing: $e')),
