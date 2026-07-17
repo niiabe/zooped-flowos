@@ -31,6 +31,14 @@ class _AboutScreenState extends State<AboutScreen> {
 
   static const _changelog = [
     (
+      version: '1.9.4+20',
+      date: '2026-07-17',
+      entries: [
+        'Fixed Dog Profile tabs truncating long labels (e.g. "Health Records", "Shows & Titles") by making the tab bar scrollable',
+        'Fixed backups uploaded to Google Drive producing an empty zip: the backup is now written to a persistent location and includes the database WAL/Shm files so no recent data is lost',
+      ],
+    ),
+    (
       version: '1.9.2+18',
       date: '2026-07-16',
       entries: [

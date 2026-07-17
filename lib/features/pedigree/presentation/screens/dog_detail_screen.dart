@@ -87,6 +87,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
           _dog = dog;
           
           const tabBar = TabBar(
+            isScrollable: true,
             labelColor: AppTheme.primaryColor,
             unselectedLabelColor: Colors.grey,
             indicatorColor: AppTheme.primaryColor,

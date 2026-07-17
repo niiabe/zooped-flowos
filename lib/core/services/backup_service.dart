@@ -21,15 +21,33 @@ class BackupService {
         return false;
       }
 
-      final tempDir = await getTemporaryDirectory();
+      final tempDir = await getApplicationDocumentsDirectory();
+      // Clean up any previously created backups to avoid accumulation
+      try {
+        final existing = tempDir
+            .listSync()
+            .whereType<File>()
+            .where((f) => p.basename(f.path).startsWith('zooped_backup_'))
+            .toList();
+        for (final f in existing) {
+          await f.delete();
+        }
+      } catch (_) {
+        // Ignore cleanup errors
+      }
+
       final dateStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final zipPath = p.join(tempDir.path, 'zooped_backup_$dateStr.zip');
 
       final encoder = ZipFileEncoder();
       encoder.create(zipPath);
 
-      // Add database
-      encoder.addFile(dbFile, 'zooped.sqlite');
+      // Add database along with its WAL/Shm companions so no recent data is lost
+      await encoder.addFile(dbFile, 'zooped.sqlite');
+      final walFile = File('${dbFile.path}-wal');
+      final shmFile = File('${dbFile.path}-shm');
+      if (await walFile.exists()) await encoder.addFile(walFile, 'zooped.sqlite-wal');
+      if (await shmFile.exists()) await encoder.addFile(shmFile, 'zooped.sqlite-shm');
 
       // Add images if they exist and includeMedia is true
       if (includeMedia && await imagesDir.exists()) {
@@ -40,12 +58,12 @@ class BackupService {
             final relativePath = p.relative(file.path, from: appDir.path);
             // On Windows p.relative uses '\', so ensure zip uses '/'
             final zipEntryName = relativePath.replaceAll('\\', '/');
-            encoder.addFile(file, zipEntryName);
+            await encoder.addFile(file, zipEntryName);
           }
         }
       }
 
-      encoder.close();
+      await encoder.close();
 
       final xFile = XFile(zipPath, mimeType: 'application/zip');
       await Share.shareXFiles(
@@ -96,9 +114,13 @@ class BackupService {
         final filename = file.name;
         if (file.isFile) {
           final data = file.content as List<int>;
-          if (filename == 'zooped.sqlite') {
-            await File(targetDbPath).writeAsBytes(data, flush: true);
-            hasDb = true;
+          final baseName = p.basename(filename);
+          if (baseName == 'zooped.sqlite' ||
+              baseName == 'zooped.sqlite-wal' ||
+              baseName == 'zooped.sqlite-shm') {
+            final target = p.join(appDir.path, baseName);
+            await File(target).writeAsBytes(data, flush: true);
+            if (baseName == 'zooped.sqlite') hasDb = true;
           } else if (filename.startsWith('zooped_images/')) {
             final extractPath = p.join(appDir.path, filename);
             await File(extractPath).create(recursive: true);
