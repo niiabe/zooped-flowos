@@ -90,6 +90,8 @@ class SettingsScreen extends ConsumerWidget {
   }) {
     final isTablet = Responsive.isTablet(context);
     final padding = Responsive.padding(context);
+    final textTheme = Theme.of(context).textTheme;
+    final onSurface = textTheme.titleMedium?.color ?? AppTheme.secondaryColor;
 
     return Card(
       elevation: 0,
@@ -122,7 +124,7 @@ class SettingsScreen extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: isTablet ? 18.0 : 16.0,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.secondaryColor,
+                        color: onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -130,7 +132,8 @@ class SettingsScreen extends ConsumerWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: isTablet ? 14.0 : 13.0,
-                        color: Colors.grey.shade600,
+                        color: (textTheme.bodyMedium?.color ?? Colors.grey.shade600)
+                            .withValues(alpha: 0.65),
                       ),
                     ),
                   ],

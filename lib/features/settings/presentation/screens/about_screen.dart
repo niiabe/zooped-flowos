@@ -31,7 +31,7 @@ class _AboutScreenState extends State<AboutScreen> {
 
   static const _changelog = [
     (
-      version: '1.9.0+16',
+      version: '1.9.1+17',
       date: '2026-07-16',
       entries: [
         'Added Full Google Drive Backup & Restore functionality from the Settings screen',

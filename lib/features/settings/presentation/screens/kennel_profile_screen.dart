@@ -133,6 +133,9 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
               title: const Text('Kennel Profile'),
               bottom: const TabBar(
                 isScrollable: true,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                indicatorColor: Colors.white,
                 tabs: [
                   Tab(text: 'Identity', icon: Icon(Icons.badge)),
                   Tab(text: 'Breeding', icon: Icon(Icons.pets)),
