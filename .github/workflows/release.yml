@@ -100,7 +100,7 @@ jobs:
         id: apk
         run: |
           mkdir -p dist
-          APK="dist/zooped-${{ steps.version.outputs.tag }}.apk"
+          APK="dist/ZooPed_${{ steps.version.outputs.tag }}.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "$APK"
           echo "path=${APK}" >> "$GITHUB_OUTPUT"
 

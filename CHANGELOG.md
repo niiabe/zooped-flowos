@@ -5,6 +5,24 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.5+21] - 2026-07-17
+
+### Added
+- **Automated Version Syncing:** The About screen now dynamically fetches the app's changelog directly from GitHub Releases, guaranteeing the app's release history is never out of sync.
+- **Dynamic Build Info:** The App Updates and About screens now dynamically extract their installed versions directly from the core configuration, completely eliminating the display of hardcoded outdated update numbers.
+- **Branded Installers:** Over-the-Air updates download files named `ZooPed_vX.X.X.apk` instead of `app-release.apk`.
+
+## [1.9.4+20] - 2026-07-17
+
+### Fixed
+- **Cloud Backup Integrity Fixed:** Rebuilt the internal ZIP compression algorithm that was causing Google Drive backups to upload empty shells. The backup system now uses a persistent streaming buffer and correctly backs up your entire kennel, images, and database WAL files.
+- **UI Overflow Repairs:** Fixed Dog Profile tabs truncating long labels (e.g., "Health Records", "Shows & Titles") by implementing horizontal scrollable tab bars.
+
+## [1.9.2+18] - 2026-07-16
+
+### Fixed
+- **Restore Paths Fixed:** Fixed a bug where exporting backups with absolute paths caused restores to fail and appear empty on new devices.
+
 ## [1.9.0+16] - 2026-07-16
 
 ### Added

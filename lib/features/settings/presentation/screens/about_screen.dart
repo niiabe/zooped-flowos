@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -14,10 +16,14 @@ class AboutScreen extends StatefulWidget {
 class _AboutScreenState extends State<AboutScreen> {
   String _version = 'Loading...';
 
+  List<({String version, String date, List<String> entries})>? _changelog;
+  bool _changelogError = false;
+
   @override
   void initState() {
     super.initState();
     _loadPackageInfo();
+    _fetchChangelog();
   }
 
   Future<void> _loadPackageInfo() async {
@@ -29,109 +35,63 @@ class _AboutScreenState extends State<AboutScreen> {
     }
   }
 
-  static const _changelog = [
-    (
-      version: '1.9.4+20',
-      date: '2026-07-17',
-      entries: [
-        'Fixed Dog Profile tabs truncating long labels (e.g. "Health Records", "Shows & Titles") by making the tab bar scrollable',
-        'Fixed backups uploaded to Google Drive producing an empty zip: the backup is now written to a persistent location and includes the database WAL/Shm files so no recent data is lost',
-      ],
-    ),
-    (
-      version: '1.9.2+18',
-      date: '2026-07-16',
-      entries: [
-        'Bug Fix: Fixed an issue where backup files exported with absolute paths causing them to appear empty during restore',
-        'Added Full Google Drive Backup & Restore functionality from the Settings screen',
-        'Added option to include or exclude media (images/videos) from the backup file',
-        'Revamped Litters & Offspring UI: Puppies are now neatly grouped into expandable folders under their respective litters',
-      ],
-    ),
-    (
-      version: '1.8.0+15',
-      date: '2026-07-15',
-      entries: [
-        'In-App Update Checker: check for new versions from Settings > App Updates, then download and install the signed APK directly in the app',
-        'Automatic launch prompt when a newer GitHub release is available, with release notes and Update / Later / Skip options',
-        'Skip this version support so the launch prompt won\'t nag you about a release you dismissed',
-        'Automated GitHub Actions release pipeline that builds, signs, verifies, and publishes the APK on every version tag',
-      ],
-    ),
-    (
-      version: '1.7.0+14',
-      date: '2026-06-21',
-      entries: [
-        'Architectural Scaling & Optimization Update',
-        'Memory Optimization: Converted FutureProvider database streams to autoDispose to instantly release memory resources',
-        'Isolate Offloading: Migrated the heavy A4 Pedigree PDF Generator and compression logic entirely off the UI thread onto a background compute() isolate',
-        'Data Security Integration: Hardened the SQLite persistence layer with comprehensive input boundary sanitization',
-        'N+1 Database Query Fix: Re-engineered the lineage tree traversal engine away from an O(N) recursive loop to a batched, Depth-based O(Depth) query',
-        'File Storage Permanence: Migrated all dog and kennel images automatically into a persistent, un-deletable app sandbox',
-        'UX Search Debouncing: Installed an asynchronous backend Future.delayed cancellation layer on the Dashboard Search Bar',
-      ],
-    ),
-    (
-      version: '1.6.0+13',
-      date: '2026-06-21',
-      entries: [
-        'Massive upgrade to PDF Export: 3-generation pedigree certificate with custom borders, colors, signatures, and breeder logos',
-        'Whelped date removed from certificate',
-      ],
-    ),
-    (
-      version: '1.5.0+12',
-      date: '2026-06-21',
-      entries: [
-        'Predictive Breed Input: the Breed field now auto-completes breeds from your Kennel Profile as you type',
-        'Dynamic Versioning: the About screen reads the version number dynamically from the build configuration',
-        'Social Pedigree Sharing: the Social share button now shares a rasterized image of the PDF certificate instead of a raw canvas screenshot',
-        'Breed information is now visible throughout the app (Dashboard, Dog Details, Certificate, Analytics)',
-        'Fixed transparent background on the generated social share image',
-        'Cleaned up the PDF Certificate watermark to only show the ZooPed logo',
-      ],
-    ),
-    (
-      version: '1.4.1+11',
-      date: '2026-06-20',
-      entries: [
-        'Restored the Heat Tracker screen which was incorrectly displaying the Matchmaker tab',
-        'Litters list now auto-refreshes instantly upon returning from the Add Litter screen',
-        'Enabled global live input validation (e.g., Microchip Number warns instantly while typing)',
-        'Stripped 10+ older historical changelog data points to reduce app bundle weight',
-      ],
-    ),
-    (
-      version: '1.4.0+10',
-      date: '2026-06-20',
-      entries: [
-        'Prevented infinite circular pedigree loops by filtering descendants out of sire/dam selection',
-        'Auto-repairs corrupted circular lineage when opening the Edit Dog screen',
-        'Added EXACT_ALARM Android permissions to fix crashing when adding health records',
-        'Health records now guarantee saving even if the device blocks reminder notifications',
-      ],
-    ),
-    (
-      version: '1.4.0+9',
-      date: '2026-06-20',
-      entries: [
-        'Fixed critical bug where adding a missing parent via pedigree canvas deleted the other parent',
-        'Dogs added directly from pedigree canvas now properly default to "Not Owned" sale status',
-      ],
-    ),
-    (
-      version: '1.4.0+8',
-      date: '2026-06-20',
-      entries: [
-        'Added "Not Owned" option to sale status dropdowns to categorize non-owned parent dogs in pedigrees',
-        'Pedigree PDF Watermark: added a large ZooPed logo and paw prints as a background watermark on exported certificates',
-        'Dog Profile Banner Image: the dog\'s profile picture now displays as a circular avatar in the Dog Detail top banner',
-        'Filtered "Not Owned" dogs from the main kennel dashboard list and search results',
-        'Enforced strict numeric input formatting on Microchip, Phone, and Financial fields',
-      ],
-    ),
+  Future<void> _fetchChangelog() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.github.com/repos/niiabe/zooped-flowos/releases'),
+        headers: const {'Accept': 'application/vnd.github+json'},
+      );
 
-  ];
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        final List<({String version, String date, List<String> entries})> fetched = [];
+
+        for (final release in data) {
+          final tagName = (release['tag_name'] as String?)?.trim() ?? '';
+          if (tagName.isEmpty) continue;
+
+          final rawDate = release['published_at'] as String? ?? '';
+          final dateStr = rawDate.split('T').first;
+
+          final body = (release['body'] as String?)?.trim() ?? '';
+          final lines = body.split('\n');
+          final entries = <String>[];
+          
+          for (var line in lines) {
+            line = line.trim();
+            if (line.startsWith('- ')) {
+              // Strip bullet and asterisks (bold)
+              line = line.substring(2).replaceAll('**', '').trim();
+              if (line.isNotEmpty) entries.add(line);
+            }
+          }
+
+          if (entries.isNotEmpty) {
+            fetched.add((
+              version: tagName.replaceAll('v', ''),
+              date: dateStr,
+              entries: entries,
+            ));
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _changelog = fetched;
+            _changelogError = false;
+          });
+        }
+      } else {
+        throw Exception('Failed to load');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _changelogError = true;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +183,31 @@ class _AboutScreenState extends State<AboutScreen> {
           ],
         ),
         SizedBox(height: padding),
-        ..._changelog.map((release) => _buildReleaseEntry(release, padding, isTablet)),
+        if (_changelogError)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'Unable to load changelog.\nPlease check your internet connection.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          )
+        else if (_changelog == null)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_changelog!.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text('No release history available.', style: TextStyle(color: Colors.grey)),
+            ),
+          )
+        else
+          ..._changelog!.map((release) => _buildReleaseEntry(release, padding, isTablet)),
       ],
     );
   }
