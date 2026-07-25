@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -50,6 +51,7 @@ class UpdateService {
   UpdateService({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
+  static const _channel = MethodChannel('com.zooped/device_info');
 
   static const String _owner = 'niiabe';
   static const String _repo = 'zooped-flowos';
@@ -57,6 +59,50 @@ class UpdateService {
       'https://api.github.com/repos/$_owner/$_repo/releases/latest';
 
   static const String _skippedVersionKey = 'update_skipped_version';
+
+  /// Returns the device's primary CPU ABI (e.g. 'arm64-v8a', 'armeabi-v7a').
+  Future<String> _getDeviceAbi() async {
+    try {
+      final result = await _channel.invokeMethod<Map>('getAbi');
+      final abis = result?['supportedAbis'] as List<dynamic>?;
+      if (abis != null && abis.isNotEmpty) {
+        return abis.first.toString();
+      }
+    } catch (_) {}
+    // Fallback: assume arm64 for modern devices
+    return 'arm64-v8a';
+  }
+
+  /// Finds the best matching APK asset for the device's ABI.
+  /// Returns the first APK if no ABI-specific match is found.
+  Map<String, dynamic> _findBestApkAsset(
+    List<Map<String, dynamic>> assets,
+    String deviceAbi,
+  ) {
+    // Try exact match first (e.g. 'app-arm64-v8a-release.apk')
+    for (final asset in assets) {
+      final name = (asset['name'] as String? ?? '').toLowerCase();
+      if (name.contains(deviceAbi) && name.endsWith('.apk')) {
+        return asset;
+      }
+    }
+
+    // Fallback for armeabi-v7a devices: arm64 APKs are usually compatible
+    if (deviceAbi == 'armeabi-v7a') {
+      for (final asset in assets) {
+        final name = (asset['name'] as String? ?? '').toLowerCase();
+        if (name.contains('arm64') && name.endsWith('.apk')) {
+          return asset;
+        }
+      }
+    }
+
+    // Final fallback: return any APK
+    return assets.firstWhere(
+      (a) => (a['name'] as String? ?? '').toLowerCase().endsWith('.apk'),
+      orElse: () => <String, dynamic>{},
+    );
+  }
 
   /// Checks GitHub for the latest release. Returns [UpdateInfo] if a newer
   /// version than the currently installed one is available, otherwise null.
@@ -82,10 +128,15 @@ class UpdateService {
     final latestVersion = _normalizeVersion(tagName);
 
     final assets = (data['assets'] as List<dynamic>? ?? []);
-    final apkAsset = assets.cast<Map<String, dynamic>>().firstWhere(
-          (a) => (a['name'] as String? ?? '').toLowerCase().endsWith('.apk'),
-          orElse: () => <String, dynamic>{},
-        );
+    final apkAssets = assets
+        .cast<Map<String, dynamic>>()
+        .where((a) => (a['name'] as String? ?? '').toLowerCase().endsWith('.apk'))
+        .toList();
+
+    if (apkAssets.isEmpty) return null;
+
+    final deviceAbi = await _getDeviceAbi();
+    final apkAsset = _findBestApkAsset(apkAssets, deviceAbi);
 
     if (apkAsset.isEmpty) return null;
 

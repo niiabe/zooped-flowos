@@ -29,7 +29,17 @@
 | **Download Latest APK** | [GitHub Releases (latest)](https://github.com/niiabe/zooped-flowos/releases/latest) |
 | **All Versions** | [GitHub Releases](https://github.com/niiabe/zooped-flowos/releases) |
 
-> 💡 The app also supports **In-App Updates** — it checks GitHub Releases for new versions, downloads the signed APK, and installs it directly from within the app (with a launch-time prompt and skip-version support).
+> 💡 The app also supports **In-App Updates** — it checks GitHub Releases for new versions, automatically detects your device's CPU architecture, downloads the correct APK, and installs it directly from within the app.
+
+### APK Variants
+
+The app is distributed as split APKs to reduce download size. Your device will automatically download the correct version via In-App Updates, or you can manually select:
+
+| APK | Architecture | Size | Devices |
+|-----|-------------|------|---------|
+| `app-arm64-v8a-release.apk` | 64-bit ARM | ~26MB | Most modern phones (recommended) |
+| `app-armeabi-v7a-release.apk` | 32-bit ARM | ~24MB | Older/budget Android devices |
+| `app-x86_64-release.apk` | 64-bit Intel | ~28MB | Emulators, Chromebooks |
 
 ---
 
