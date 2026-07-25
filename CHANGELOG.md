@@ -5,6 +5,21 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.6+22] - 2026-07-25
+
+### Fixed
+- **Backup Size Accuracy:** Database size display now includes WAL/SHM files and media folder when enabled, showing the true backup size instead of just the raw .sqlite file.
+- **Changelog Version Display:** The About screen now always shows the current installed version in the changelog, even if no GitHub Release exists for it yet.
+
+### Added
+- **Backup History Tracking:** The Backup & Migration screen now shows when the last backup was created and when the last restore occurred.
+- **Breed Dropdown:** The breed field on Add/Edit Animal screens is now a proper dropdown instead of a free-text autocomplete, with an "Other" option for custom breeds.
+- **Current Version Badge:** The changelog highlights the currently installed version with a green "Current" badge.
+
+### Changed
+- **Default Light Theme:** The app now defaults to light theme for new users instead of following the system setting.
+- **Renamed dog/kennel to animal/farm:** All user-facing strings now use "animal" and "farm" instead of "dog" and "kennel" to support a wider range of use cases.
+
 ## [1.9.5+21] - 2026-07-17
 
 ### Added
