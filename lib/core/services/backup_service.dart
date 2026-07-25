@@ -6,8 +6,24 @@ import 'package:archive/archive_io.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BackupService {
+  static const _lastBackupDateKey = 'last_backup_date';
+  static const _lastRestoreDateKey = 'last_restore_date';
+
+  static Future<DateTime?> getLastBackupDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ms = prefs.getInt(_lastBackupDateKey);
+    return ms != null ? DateTime.fromMillisecondsSinceEpoch(ms) : null;
+  }
+
+  static Future<DateTime?> getLastRestoreDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ms = prefs.getInt(_lastRestoreDateKey);
+    return ms != null ? DateTime.fromMillisecondsSinceEpoch(ms) : null;
+  }
+
   /// Compresses the database and optionally images into a zip file and shares it.
   static Future<bool> createAndShareBackup({bool includeMedia = true}) async {
     try {
@@ -71,6 +87,9 @@ class BackupService {
         text: 'ZooPed Backup $dateStr',
         subject: 'ZooPed Database Backup',
       );
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_lastBackupDateKey, DateTime.now().millisecondsSinceEpoch);
       
       return true;
     } catch (e) {
@@ -99,7 +118,6 @@ class BackupService {
       final archive = ZipDecoder().decodeBytes(bytes);
 
       final appDir = await getApplicationDocumentsDirectory();
-      final targetDbPath = p.join(appDir.path, 'zooped.sqlite');
       final targetImagesDir = p.join(appDir.path, 'zooped_images');
 
       // Create images dir if it doesn't exist
@@ -128,6 +146,9 @@ class BackupService {
           }
         }
       }
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_lastRestoreDateKey, DateTime.now().millisecondsSinceEpoch);
 
       return hasDb;
     } catch (e) {

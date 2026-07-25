@@ -19,7 +19,7 @@ class FinancialsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kennel Financials'),
+        title: const Text('Farm Financials'),
       ),
       body: transactionsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

@@ -51,7 +51,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Dog Profile', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Animal Profile', style: TextStyle(fontWeight: FontWeight.w600)),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.secondaryColor,
@@ -120,7 +120,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       title: Text('Add $roleName'),
-                      content: Text('Would you like to add a new dog as the $roleName for ${childDog.callName}?'),
+                      content: Text('Would you like to add a new animal as the $roleName for ${childDog.callName}?'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
@@ -128,7 +128,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                         ),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Add Dog'),
+                          child: const Text('Add Animal'),
                         ),
                       ],
                     ),
@@ -462,9 +462,9 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Dog'),
+        title: const Text('Delete Animal'),
         content: Text(
-          'Are you sure you want to delete ${dog.callName}? This will remove all records related to this dog, including pedigree links and associated litters.',
+          'Are you sure you want to delete ${dog.callName}? This will remove all records related to this animal, including pedigree links and associated litters.',
         ),
         actions: [
           TextButton(
@@ -496,14 +496,14 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
             SnackBar(
               content: Text(e.message.contains('UNIQUE')
                   ? 'A record with this name or microchip already exists'
-                  : 'Error deleting dog: $e'),
+                  : 'Error deleting animal: $e'),
             ),
           );
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting dog: $e')),
+            SnackBar(content: Text('Error deleting animal: $e')),
           );
         }
       }

@@ -75,7 +75,7 @@ class AnalyticsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Kennel Analytics 📊'),
+        title: const Text('Farm Analytics 📊'),
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.secondaryColor,
         elevation: 0,
@@ -102,7 +102,7 @@ class AnalyticsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8.0),
                   Text(
-                    'Add dogs to see kennel statistics',
+                    'Add animals to see farm statistics',
                     style: TextStyle(color: Colors.grey.shade500),
                   ),
                 ],
@@ -115,7 +115,7 @@ class AnalyticsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildStatCard(
-                  title: 'Total Dogs in Kennel',
+                  title: 'Total Animals in Farm',
                   value: stats.totalDogs.toString(),
                   icon: Icons.pets,
                   color: Colors.blue,

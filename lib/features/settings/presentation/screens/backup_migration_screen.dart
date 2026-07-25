@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/services/backup_service.dart';
@@ -20,11 +20,29 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
   String _dbSize = 'Calculating...';
   bool _isVacuuming = false;
   bool _includeMedia = true;
+  String _lastBackupDate = 'Never';
+  String _lastRestoreDate = 'Never';
 
   @override
   void initState() {
     super.initState();
     _calculateDbSize();
+    _loadMetadata();
+  }
+
+  Future<void> _loadMetadata() async {
+    final lastBackup = await BackupService.getLastBackupDate();
+    final lastRestore = await BackupService.getLastRestoreDate();
+    if (mounted) {
+      setState(() {
+        _lastBackupDate = lastBackup != null
+            ? DateFormat('yyyy-MM-dd HH:mm').format(lastBackup)
+            : 'Never';
+        _lastRestoreDate = lastRestore != null
+            ? DateFormat('yyyy-MM-dd HH:mm').format(lastRestore)
+            : 'Never';
+      });
+    }
   }
 
   Future<void> _calculateDbSize() async {
@@ -48,8 +66,23 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
       final dir = await getApplicationDocumentsDirectory();
       final dbFile = File(p.join(dir.path, 'zooped.sqlite'));
       if (await dbFile.exists()) {
-        final bytes = await dbFile.length();
-        final size = _formatBytes(bytes);
+        int totalBytes = await dbFile.length();
+        // Include WAL and SHM files in the size calculation
+        final walFile = File('${dbFile.path}-wal');
+        final shmFile = File('${dbFile.path}-shm');
+        if (await walFile.exists()) totalBytes += await walFile.length();
+        if (await shmFile.exists()) totalBytes += await shmFile.length();
+        // Include media if enabled
+        if (_includeMedia) {
+          final imagesDir = Directory(p.join(dir.path, 'zooped_images'));
+          if (await imagesDir.exists()) {
+            final files = imagesDir.listSync(recursive: true);
+            for (final file in files) {
+              if (file is File) totalBytes += await file.length();
+            }
+          }
+        }
+        final size = _formatBytes(totalBytes);
         if (mounted) setState(() => _dbSize = size);
       } else {
         if (mounted) setState(() => _dbSize = 'No database found');
@@ -144,6 +177,52 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
             ),
             SizedBox(height: padding * 2),
 
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(padding),
+              decoration: BoxDecoration(
+                color: AppTheme.secondaryColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12.0),
+                border: Border.all(color: AppTheme.secondaryColor.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.history, color: AppTheme.secondaryColor, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Backup History',
+                        style: TextStyle(
+                          fontSize: isTablet ? 16.0 : 14.0,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.secondaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: padding),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Last Backup:', style: TextStyle(color: Colors.grey.shade600)),
+                      Text(_lastBackupDate, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Last Restored:', style: TextStyle(color: Colors.grey.shade600)),
+                      Text(_lastRestoreDate, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: padding * 2),
+
             Text(
               'Export & Import',
               style: TextStyle(
@@ -209,6 +288,10 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
     final success = await BackupService.createAndShareBackup(includeMedia: _includeMedia);
     setState(() => _isVacuuming = false);
     
+    if (success) {
+      _loadMetadata();
+    }
+    
     if (!success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to create backup.')),
@@ -254,6 +337,7 @@ class _BackupMigrationScreenState extends ConsumerState<BackupMigrationScreen> {
               const SnackBar(content: Text('Restore successful! Please completely restart the app for changes to take effect.')),
             );
             _calculateDbSize();
+            _loadMetadata();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Restore failed or was canceled.')),

@@ -36,10 +36,10 @@ class ThemeNotifier extends Notifier<ThemeState> {
     final prefs = ref.watch(sharedPreferencesProvider);
     
     // Load ThemeMode
-    final modeIndex = prefs.getInt(_themeModeKey) ?? ThemeMode.system.index;
+    final modeIndex = prefs.getInt(_themeModeKey) ?? ThemeMode.light.index;
     final themeMode = ThemeMode.values.firstWhere(
       (e) => e.index == modeIndex,
-      orElse: () => ThemeMode.system,
+      orElse: () => ThemeMode.light,
     );
 
     // Load Primary Color

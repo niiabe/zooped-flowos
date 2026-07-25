@@ -28,7 +28,6 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
   final _formKey = GlobalKey<FormState>();
   final _registeredNameController = TextEditingController();
   final _callNameController = TextEditingController();
-  final _breedController = TextEditingController();
   final _microchipController = TextEditingController();
   final _colorController = TextEditingController();
   final _notesController = TextEditingController();
@@ -39,6 +38,9 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
   int? _selectedSireId;
   int? _selectedDamId;
   String _saleStatus = 'Not For Sale';
+  String? _selectedBreed;
+  final _customBreedController = TextEditingController();
+  bool _showCustomBreed = false;
   DateTime? _dateOfBirth;
   String? _photoPath;
 
@@ -57,7 +59,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
   void dispose() {
     _registeredNameController.dispose();
     _callNameController.dispose();
-    _breedController.dispose();
+    _customBreedController.dispose();
     _microchipController.dispose();
     _colorController.dispose();
     _notesController.dispose();
@@ -81,7 +83,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Dog'),
+        title: const Text('Add Animal'),
       ),
       body: Form(
         key: _formKey,
@@ -164,54 +166,36 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
               ),
               SizedBox(height: padding),
 
-              RawAutocomplete<String>(
-                textEditingController: _breedController,
-                focusNode: FocusNode(),
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  if (textEditingValue.text.isEmpty) {
-                    return availableBreeds;
-                  }
-                  return availableBreeds.where((String option) {
-                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+              DropdownButtonFormField<String>(
+                initialValue: _selectedBreed,
+                decoration: const InputDecoration(
+                  labelText: 'Breed',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  ...availableBreeds.map((breed) => DropdownMenuItem(
+                    value: breed,
+                    child: Text(breed),
+                  )),
+                  const DropdownMenuItem(value: '__other__', child: Text('Other')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedBreed = value;
+                    _showCustomBreed = value == '__other__';
                   });
                 },
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(
-                      labelText: 'Breed',
-                      border: OutlineInputBorder(),
-                    ),
-                  );
-                },
-                optionsViewBuilder: (context, onSelected, options) {
-                  return Align(
-                    alignment: Alignment.topLeft,
-                    child: Material(
-                      elevation: 4.0,
-                      child: SizedBox(
-                        height: 200.0,
-                        width: MediaQuery.of(context).size.width - (padding * 2),
-                        child: ListView.builder(
-                          padding: EdgeInsets.zero,
-                          itemCount: options.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            final option = options.elementAt(index);
-                            return InkWell(
-                              onTap: () => onSelected(option),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(option),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  );
-                },
               ),
+              if (_showCustomBreed) ...[
+                SizedBox(height: padding),
+                TextFormField(
+                  controller: _customBreedController,
+                  decoration: const InputDecoration(
+                    labelText: 'Custom Breed',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
               SizedBox(height: padding),
 
               DropdownButtonFormField<String>(
@@ -402,7 +386,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
                       vertical: isTablet ? 16.0 : 12.0,
                     ),
                   ),
-                  child: const Text('Save Dog'),
+                  child: const Text('Save Animal'),
                 ),
               ),
             ],
@@ -422,7 +406,9 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
         id: 0,
         registeredName: _registeredNameController.text.trim(),
         callName: _callNameController.text.trim(),
-        breed: _breedController.text.isEmpty ? null : _breedController.text.trim(),
+        breed: _showCustomBreed
+            ? (_customBreedController.text.isEmpty ? null : _customBreedController.text.trim())
+            : _selectedBreed,
         sex: _sex,
         dateOfBirth: _dateOfBirth,
         microchipNumber: _microchipController.text.isEmpty
@@ -453,7 +439,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
       if (mounted) {
         ref.invalidate(dogsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Dog added successfully')),
+          const SnackBar(content: Text('Animal added successfully')),
         );
         context.pop(true);
       }
@@ -462,15 +448,15 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message.contains('UNIQUE')
-                ? 'A dog with this name or microchip already exists'
-                : 'Error saving dog: $e'),
+                ? 'An animal with this name or microchip already exists'
+                : 'Error saving animal: $e'),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving dog: $e')),
+          SnackBar(content: Text('Error saving animal: $e')),
         );
       }
     }

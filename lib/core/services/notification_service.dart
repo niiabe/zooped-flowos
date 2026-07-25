@@ -47,7 +47,7 @@ class NotificationService {
         android: AndroidNotificationDetails(
           'health_reminders',
           'Health Reminders',
-          channelDescription: 'Reminders for dog health records like vaccines and deworming',
+          channelDescription: 'Reminders for animal health records like vaccines and deworming',
           importance: Importance.max,
           priority: Priority.high,
         ),

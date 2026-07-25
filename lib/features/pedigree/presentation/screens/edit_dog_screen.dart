@@ -32,7 +32,6 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
   final _formKey = GlobalKey<FormState>();
   final _registeredNameController = TextEditingController();
   final _callNameController = TextEditingController();
-  final _breedController = TextEditingController();
   final _microchipController = TextEditingController();
   final _colorController = TextEditingController();
   final _notesController = TextEditingController();
@@ -46,6 +45,9 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
   DateTime? _dateOfBirth;
   String? _photoPath;
   String? _saleStatus;
+  String? _selectedBreed;
+  final _customBreedController = TextEditingController();
+  bool _showCustomBreed = false;
   List<int> _descendantIds = [];
 
   @override
@@ -75,7 +77,6 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
     _dataLoaded = true;
     _registeredNameController.text = dog.registeredName;
     _callNameController.text = dog.callName;
-    _breedController.text = dog.breed ?? '';
     _microchipController.text = dog.microchipNumber ?? '';
     _colorController.text = dog.colorMarkings ?? '';
     _notesController.text = dog.notes ?? '';
@@ -94,7 +95,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
   void dispose() {
     _registeredNameController.dispose();
     _callNameController.dispose();
-    _breedController.dispose();
+    _customBreedController.dispose();
     _microchipController.dispose();
     _colorController.dispose();
     _notesController.dispose();
@@ -119,7 +120,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Dog'),
+        title: const Text('Edit Animal'),
       ),
       body: dogAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -138,6 +139,26 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
         ),
         data: (dog) {
           _initFromDog(dog);
+
+          final breedItems = <DropdownMenuItem<String>>[
+            ...availableBreeds.map((breed) => DropdownMenuItem(
+              value: breed,
+              child: Text(breed),
+            )),
+            const DropdownMenuItem(value: '__other__', child: Text('Other')),
+          ];
+
+          final currentBreed = dog.breed;
+          if (currentBreed != null && currentBreed.isNotEmpty &&
+              !availableBreeds.contains(currentBreed)) {
+            _selectedBreed ??= currentBreed;
+            breedItems.insert(
+              0,
+              DropdownMenuItem(value: currentBreed, child: Text(currentBreed)),
+            );
+          } else {
+            _selectedBreed ??= currentBreed;
+          }
 
           return Form(
             key: _formKey,
@@ -220,54 +241,30 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
                   ),
                   SizedBox(height: padding),
 
-                  RawAutocomplete<String>(
-                    textEditingController: _breedController,
-                    focusNode: FocusNode(),
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      if (textEditingValue.text.isEmpty) {
-                        return availableBreeds;
-                      }
-                      return availableBreeds.where((String option) {
-                        return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedBreed,
+                    decoration: const InputDecoration(
+                      labelText: 'Breed',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: breedItems,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedBreed = value;
+                        _showCustomBreed = value == '__other__';
                       });
                     },
-                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                      return TextFormField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: const InputDecoration(
-                          labelText: 'Breed',
-                          border: OutlineInputBorder(),
-                        ),
-                      );
-                    },
-                    optionsViewBuilder: (context, onSelected, options) {
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Material(
-                          elevation: 4.0,
-                          child: SizedBox(
-                            height: 200.0,
-                            width: MediaQuery.of(context).size.width - (padding * 2),
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              itemCount: options.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                final option = options.elementAt(index);
-                                return InkWell(
-                                  onTap: () => onSelected(option),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Text(option),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      );
-                    },
                   ),
+                  if (_showCustomBreed) ...[
+                    SizedBox(height: padding),
+                    TextFormField(
+                      controller: _customBreedController,
+                      decoration: const InputDecoration(
+                        labelText: 'Custom Breed',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
                   SizedBox(height: padding),
 
                   DropdownButtonFormField<String>(
@@ -482,7 +479,9 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
       final updated = dog.copyWith(
         registeredName: _registeredNameController.text.trim(),
         callName: _callNameController.text.trim(),
-        breed: _breedController.text.isEmpty ? null : _breedController.text.trim(),
+        breed: _showCustomBreed
+            ? (_customBreedController.text.isEmpty ? null : _customBreedController.text.trim())
+            : _selectedBreed,
         sex: _sex,
         dateOfBirth: _dateOfBirth,
         microchipNumber: _microchipController.text.isEmpty
@@ -503,7 +502,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
       if (mounted) {
         ref.invalidate(dogsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Dog updated successfully')),
+          const SnackBar(content: Text('Animal updated successfully')),
         );
         context.pop();
       }
@@ -512,15 +511,15 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message.contains('UNIQUE')
-                ? 'A dog with this name or microchip already exists'
-                : 'Error updating dog: $e'),
+                ? 'An animal with this name or microchip already exists'
+                : 'Error updating animal: $e'),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating dog: $e')),
+          SnackBar(content: Text('Error updating animal: $e')),
         );
       }
     }

@@ -15,6 +15,7 @@ class AboutScreen extends StatefulWidget {
 
 class _AboutScreenState extends State<AboutScreen> {
   String _version = 'Loading...';
+  String _currentVersion = '';
 
   List<({String version, String date, List<String> entries})>? _changelog;
   bool _changelogError = false;
@@ -31,6 +32,7 @@ class _AboutScreenState extends State<AboutScreen> {
     if (mounted) {
       setState(() {
         _version = 'Version ${info.version}+${info.buildNumber}';
+        _currentVersion = info.version;
       });
     }
   }
@@ -80,6 +82,25 @@ class _AboutScreenState extends State<AboutScreen> {
             _changelog = fetched;
             _changelogError = false;
           });
+        }
+
+        // Check if current version is in the changelog, if not add it at the top
+        if (mounted && _currentVersion.isNotEmpty) {
+          final hasCurrentVersion = fetched.any(
+            (r) => r.version == _currentVersion,
+          );
+          if (!hasCurrentVersion) {
+            setState(() {
+              _changelog = [
+                (
+                  version: _currentVersion,
+                  date: DateTime.now().toIso8601String().split('T').first,
+                  entries: ['Current version'],
+                ),
+                ...fetched,
+              ];
+            });
+          }
         }
       } else {
         throw Exception('Failed to load');
@@ -216,8 +237,10 @@ class _AboutScreenState extends State<AboutScreen> {
       ({String version, String date, List<String> entries}) release,
       double padding,
       bool isTablet) {
+    final isCurrentVersion = release.version == _currentVersion;
     return Card(
       margin: EdgeInsets.only(bottom: padding),
+      color: isCurrentVersion ? AppTheme.primaryColor.withValues(alpha: 0.05) : null,
       child: Padding(
         padding: EdgeInsets.all(padding),
         child: Column(
@@ -228,7 +251,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
+                    color: isCurrentVersion ? Colors.green : AppTheme.primaryColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -240,6 +263,24 @@ class _AboutScreenState extends State<AboutScreen> {
                     ),
                   ),
                 ),
+                if (isCurrentVersion) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Current',
+                      style: TextStyle(
+                        color: Colors.green.shade800,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(width: 8),
                 Text(
                   release.date,
