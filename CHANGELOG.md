@@ -5,6 +5,15 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.7+23] - 2026-07-25
+
+### Added
+- **QR Code Generation:** Generate QR codes for dog profiles containing name, breed, sex, and microchip info. Tap the QR icon on any dog's detail screen.
+- **Feature Roadmap:** Added roadmap.txt with planned features and improvements organized by effort level.
+
+### Reverted
+- **Reverted animal/farm naming:** All user-facing strings restored to use dog/kennel/puppy terminology.
+
 ## [1.9.6+22] - 2026-07-25
 
 ### Fixed
