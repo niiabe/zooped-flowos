@@ -42,6 +42,7 @@ dependencies:
   rxdart: ^0.28.0
   package_info_plus: ^9.0.1
   flutter_animate: ^4.5.2
+  qr_flutter: ^4.1.0
 
   # In-App Updater (GitHub Releases)
   http: ^1.2.2

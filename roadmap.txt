@@ -1,0 +1,45 @@
+ZooPed Feature Roadmap
+=====================
+
+Quick Wins (Easy Implementation)
+---------------------------------
+- Add a default breed preset list so new users don't have to manually enter breeds in Kennel Profile
+- Add export to CSV/PDF for Analytics screen
+- Add dark mode scheduling (auto-switch at sunset/sunrise)
+- Add "Share QR Code" option to save/share the generated QR code image
+- Add quick-action buttons on dog detail screen (e.g., "Log Health Record", "Add Photo")
+
+Medium Effort
+--------------
+- Generalize database tables (rename dogs -> animals, kennel_profile -> farm_profile) for full data-level generalization
+- Add multi-kennel support (switch between different kennels/profiles)
+- Add veterinary appointment scheduling with calendar integration
+- Add litter weight tracking over time with growth charts
+- Add photo captions and bulk photo import
+- Add search/filter in health records and show records
+- Add data export for individual dog records (PDF profile)
+- Add pedigree comparison tool (compare two dogs side by side)
+
+Bigger Features
+----------------
+- iOS support (currently Android-only)
+- Cloud sync with Firebase/Supabase for multi-device access
+- Breeding compatibility checker (genetic health screening integration)
+- Integration with kennel club registries for automatic pedigree validation
+- Marketplace for puppy listings (connect breeders with buyers)
+- GPS tracking integration for field trials/hunting dogs
+- Voice notes for dog records
+- Multi-language support (Spanish, French, Portuguese, etc.)
+- Widget support for home screen (upcoming whelpings, heat cycles)
+- Wear OS companion app for quick field entry
+
+Technical Improvements
+-----------------------
+- Migrate from Drift to Isar or Hive for better performance
+- Add unit and integration tests
+- Implement CI/CD pipeline improvements (automated testing before release)
+- Add app analytics (Firebase Analytics) for usage insights
+- Implement proper state management testing
+- Add offline-first sync capability
+- Optimize image compression and storage
+- Add biometric authentication for sensitive operations

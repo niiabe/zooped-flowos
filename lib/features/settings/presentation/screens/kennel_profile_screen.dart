@@ -106,7 +106,7 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
     return profileAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
-        appBar: AppBar(title: const Text('Farm Profile')),
+        appBar: AppBar(title: const Text('Kennel Profile')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -130,7 +130,7 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
           length: 4,
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Farm Profile'),
+              title: const Text('Kennel Profile'),
               bottom: const TabBar(
                 isScrollable: true,
                 labelColor: Colors.white,
@@ -164,7 +164,7 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                   ),
-                  child: const Text('Save Farm Profile'),
+                  child: const Text('Save Kennel Profile'),
                 ),
               ),
             ),
@@ -186,13 +186,13 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
           TextFormField(
             controller: _kennelNameController,
             decoration: const InputDecoration(
-              labelText: 'Farm Name',
+              labelText: 'Kennel Name',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.home),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter a farm name';
+                return 'Please enter a kennel name';
               }
               return null;
             },
@@ -208,7 +208,7 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
           ),
           SizedBox(height: padding * 2),
           Text(
-            'Farm Logo',
+            'Kennel Logo',
             style: TextStyle(
               fontSize: isTablet ? 20.0 : 18.0,
               fontWeight: FontWeight.bold,
@@ -271,7 +271,7 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Primary breeds will be used to auto-complete fields when adding new animals.',
+            'Primary breeds will be used to auto-complete fields when adding new dogs.',
             style: TextStyle(color: Colors.grey),
           ),
           SizedBox(height: padding),
@@ -569,7 +569,7 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Farm profile saved successfully!')),
+          const SnackBar(content: Text('Kennel profile saved successfully!')),
         );
       }
     } catch (e) {

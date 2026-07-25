@@ -83,7 +83,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Animal'),
+        title: const Text('Add Dog'),
       ),
       body: Form(
         key: _formKey,
@@ -386,7 +386,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
                       vertical: isTablet ? 16.0 : 12.0,
                     ),
                   ),
-                  child: const Text('Save Animal'),
+                  child: const Text('Save Dog'),
                 ),
               ),
             ],
@@ -439,7 +439,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
       if (mounted) {
         ref.invalidate(dogsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Animal added successfully')),
+          const SnackBar(content: Text('Dog added successfully')),
         );
         context.pop(true);
       }
@@ -448,15 +448,15 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message.contains('UNIQUE')
-                ? 'An animal with this name or microchip already exists'
-                : 'Error saving animal: $e'),
+                ? 'A dog with this name or microchip already exists'
+                : 'Error saving dog: $e'),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving animal: $e')),
+          SnackBar(content: Text('Error saving dog: $e')),
         );
       }
     }

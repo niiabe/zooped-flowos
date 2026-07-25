@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:share_plus/share_plus.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:printing/printing.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/database/app_database.dart' hide Dog;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,11 +52,16 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Animal Profile', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Dog Profile', style: TextStyle(fontWeight: FontWeight.w600)),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.secondaryColor,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code),
+            tooltip: 'Generate QR Code',
+            onPressed: _dog != null ? () => _showQrCode(context) : null,
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => context.push('/dog/${widget.dogId}/edit'),
@@ -120,7 +126,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       title: Text('Add $roleName'),
-                      content: Text('Would you like to add a new animal as the $roleName for ${childDog.callName}?'),
+                      content: Text('Would you like to add a new dog as the $roleName for ${childDog.callName}?'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
@@ -128,7 +134,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                         ),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Add Animal'),
+                          child: const Text('Add Dog'),
                         ),
                       ],
                     ),
@@ -455,6 +461,57 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     );
   }
 
+  void _showQrCode(BuildContext context) {
+    final dog = _dog;
+    if (dog == null) return;
+
+    final qrData = 'ZOOPED:${dog.id}|${dog.registeredName}|${dog.callName}|${dog.breed ?? "Unknown"}|${dog.sex}|${dog.microchipNumber ?? "N/A"}';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Dog QR Code'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            QrImageView(
+              data: qrData,
+              version: QrVersions.auto,
+              size: 200.0,
+              backgroundColor: Colors.white,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              dog.registeredName,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${dog.breed ?? "Unknown"} • ${dog.sex}',
+              style: TextStyle(color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
+            ),
+            if (dog.microchipNumber != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Microchip: ${dog.microchipNumber}',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _confirmDelete(BuildContext context) async {
     final dog = _dog;
     if (dog == null) return;
@@ -462,9 +519,9 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Animal'),
+        title: const Text('Delete Dog'),
         content: Text(
-          'Are you sure you want to delete ${dog.callName}? This will remove all records related to this animal, including pedigree links and associated litters.',
+          'Are you sure you want to delete ${dog.callName}? This will remove all records related to this dog, including pedigree links and associated litters.',
         ),
         actions: [
           TextButton(
@@ -496,14 +553,14 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
             SnackBar(
               content: Text(e.message.contains('UNIQUE')
                   ? 'A record with this name or microchip already exists'
-                  : 'Error deleting animal: $e'),
+                  : 'Error deleting dog: $e'),
             ),
           );
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting animal: $e')),
+            SnackBar(content: Text('Error deleting dog: $e')),
           );
         }
       }

@@ -120,7 +120,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Animal'),
+        title: const Text('Edit Dog'),
       ),
       body: dogAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -502,7 +502,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
       if (mounted) {
         ref.invalidate(dogsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Animal updated successfully')),
+          const SnackBar(content: Text('Dog updated successfully')),
         );
         context.pop();
       }
@@ -511,15 +511,15 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message.contains('UNIQUE')
-                ? 'An animal with this name or microchip already exists'
-                : 'Error updating animal: $e'),
+                ? 'A dog with this name or microchip already exists'
+                : 'Error updating dog: $e'),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating animal: $e')),
+          SnackBar(content: Text('Error updating dog: $e')),
         );
       }
     }

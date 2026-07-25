@@ -107,7 +107,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search animals...',
+                      hintText: 'Search dogs...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
@@ -205,14 +205,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                         const SizedBox(height: 8.0),
                         Text(
-                          'Let\'s get your farm set up.',
+                          'Let\'s get your kennel set up.',
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 16.0),
                         ),
                         const SizedBox(height: 32.0),
                         FilledButton.icon(
                           onPressed: () => context.push('/settings/kennel'),
                           icon: const Icon(Icons.store),
-                          label: const Text('1. Set up Farm Profile'),
+                          label: const Text('1. Set up Kennel Profile'),
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
                           ),
@@ -221,7 +221,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ElevatedButton.icon(
                           onPressed: () => context.push('/dog/new'),
                           icon: const Icon(Icons.add),
-                          label: const Text('2. Add Foundation Animal'),
+                          label: const Text('2. Add Foundation Dog'),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
                           ),
@@ -290,7 +290,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.pets),
-              title: const Text('Add Animal'),
+              title: const Text('Add Dog'),
               onTap: () {
                 Navigator.pop(context);
                 context.push('/dog/new');

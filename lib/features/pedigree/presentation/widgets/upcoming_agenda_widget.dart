@@ -160,7 +160,7 @@ class UpcomingAgendaWidget extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               loading: () => const Text('Loading...'),
-              error: (_, _) => const Text('Unknown Animal'),
+              error: (_, _) => const Text('Unknown Dog'),
             ),
             const SizedBox(height: 4),
             Text(

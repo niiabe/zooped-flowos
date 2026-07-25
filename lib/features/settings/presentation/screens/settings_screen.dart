@@ -33,8 +33,8 @@ class SettingsScreen extends ConsumerWidget {
             _buildSectionCard(
               context,
               icon: Icons.pets,
-              title: 'Farm Profile',
-              subtitle: 'Manage your farm name, breeder info, and logo',
+              title: 'Kennel Profile',
+              subtitle: 'Manage your kennel name, breeder info, and logo',
               color: AppTheme.defaultPrimaryColor,
               onTap: () => context.push('/settings/kennel'),
             ),
