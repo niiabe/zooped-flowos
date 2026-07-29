@@ -5,6 +5,15 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.8+24] - 2026-07-29
+
+### Added
+- **Litter Health Records:** Add health records across all puppies in a litter at once directly from the litter profile.
+- **Health Inheritance:** When adding a new dog from a registered litter, the puppy automatically inherits all health records from the litter.
+
+### Fixed
+- **Litter Editing Bug:** Fixed an issue where puppies could not be updated or removed when editing an existing litter.
+
 ## [1.9.7+23] - 2026-07-25
 
 ### Added
