@@ -12,7 +12,9 @@ import '../providers/shared_providers.dart';
 import 'dashboard_screen.dart';
 
 class LitterFormScreen extends ConsumerStatefulWidget {
-  const LitterFormScreen({super.key});
+  final int? litterId;
+
+  const LitterFormScreen({super.key, this.litterId});
 
   @override
   ConsumerState<LitterFormScreen> createState() => _LitterFormScreenState();
@@ -35,6 +37,51 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
 
   final List<Map<String, dynamic>> _puppyEntries = [];
 
+  bool get _isEditMode => widget.litterId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditMode) {
+      _loadLitter();
+    }
+  }
+
+  Future<void> _loadLitter() async {
+    final repo = ref.read(pedigreeRepositoryProvider);
+    final litter = await repo.getLitterById(widget.litterId!);
+    if (litter == null || !mounted) return;
+
+    final puppies = await repo.getPuppiesInLitter(widget.litterId!);
+
+    setState(() {
+      _selectedSireId = litter.sireId > 0 ? litter.sireId : null;
+      _selectedDamId = litter.damId > 0 ? litter.damId : null;
+      _matingDate = litter.matingDate;
+      _whelpingDate = litter.whelpingDate;
+      _puppiesBornAlive = litter.puppiesBornAlive;
+      _puppiesStillborn = litter.puppiesStillborn;
+
+      _matingDateController.text = _matingDate != null
+          ? DateFormat('yyyy-MM-dd').format(_matingDate!)
+          : '';
+      _whelpingDateController.text = DateFormat('yyyy-MM-dd').format(_whelpingDate!);
+      _puppiesBornController.text = _puppiesBornAlive.toString();
+      _puppiesStillbornController.text = _puppiesStillborn > 0 ? _puppiesStillborn.toString() : '';
+      _notesController.text = litter.notes ?? '';
+
+      _puppyEntries.clear();
+      for (final puppy in puppies) {
+        _puppyEntries.add({
+          'callName': puppy.callName,
+          'sex': puppy.sex,
+          'microchip': puppy.microchipNumber ?? '',
+          'id': puppy.id,
+        });
+      }
+    });
+  }
+
   @override
   void dispose() {
     _matingDateController.dispose();
@@ -54,7 +101,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Register Litter'),
+        title: Text(_isEditMode ? 'Edit Litter' : 'Register Litter'),
       ),
       body: Form(
         key: _formKey,
@@ -263,7 +310,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
                       vertical: isTablet ? 16.0 : 12.0,
                     ),
                   ),
-                  child: const Text('Save Litter'),
+                  child: Text(_isEditMode ? 'Update Litter' : 'Save Litter'),
                 ),
               ),
             ],
@@ -534,7 +581,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
       final repo = ref.read(pedigreeRepositoryProvider);
 
       final litter = Litter(
-        id: 0,
+        id: _isEditMode ? widget.litterId! : 0,
         sireId: _selectedSireId!,
         damId: _selectedDamId!,
         matingDate: _matingDate,
@@ -551,26 +598,31 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
 
         final sex = entry['sex'] as String;
         final microchip = (entry['microchip'] as String?)?.trim();
+        final id = entry['id'] as int? ?? 0;
 
         puppies.add(Dog(
-          id: 0,
+          id: id,
           registeredName: callName,
           callName: callName,
           sex: sex,
           microchipNumber: microchip?.isEmpty == true ? null : microchip,
           sire: null,
           dam: null,
-          litterId: 0,
+          litterId: _isEditMode ? widget.litterId! : 0,
           createdAt: DateTime.now(),
         ));
       }
 
-      await repo.createLitterWithPuppies(litter, puppies);
+      if (_isEditMode) {
+        await repo.updateLitterWithPuppies(litter, puppies);
+      } else {
+        await repo.createLitterWithPuppies(litter, puppies);
+      }
 
       if (mounted) {
         ref.invalidate(dogsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Litter registered successfully')),
+          SnackBar(content: Text(_isEditMode ? 'Litter updated successfully' : 'Litter registered successfully')),
         );
         context.pop();
       }

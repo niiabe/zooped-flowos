@@ -37,6 +37,7 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
   String _sex = 'Male';
   int? _selectedSireId;
   int? _selectedDamId;
+  int? _selectedLitterId;
   String _saleStatus = 'Not For Sale';
   String? _selectedBreed;
   final _customBreedController = TextEditingController();
@@ -302,6 +303,45 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
               ),
               SizedBox(height: padding),
 
+              ref.watch(allLittersProvider).when(
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => const SizedBox.shrink(),
+                data: (litters) {
+                  if (litters.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    children: [
+                      DropdownButtonFormField<int>(
+                        initialValue: _selectedLitterId,
+                        decoration: const InputDecoration(
+                          labelText: 'From Registered Litter (Optional)',
+                          border: OutlineInputBorder(),
+                          helperText: 'Selecting a litter auto-sets parents and copies health records',
+                        ),
+                        items: litters.map((litter) {
+                          return DropdownMenuItem(
+                            value: litter.id,
+                            child: Text('Litter #${litter.id} (${DateFormat('yyyy-MM-dd').format(litter.whelpingDate)})'),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedLitterId = value;
+                            if (value != null) {
+                              final selectedLitter = litters.firstWhere((l) => l.id == value);
+                              if (selectedLitter.sireId > 0) _selectedSireId = selectedLitter.sireId;
+                              if (selectedLitter.damId > 0) _selectedDamId = selectedLitter.damId;
+                              _dateOfBirth = selectedLitter.whelpingDate;
+                              _dateOfBirthController.text = DateFormat('yyyy-MM-dd').format(selectedLitter.whelpingDate);
+                            }
+                          });
+                        },
+                      ),
+                      SizedBox(height: padding),
+                    ],
+                  );
+                },
+              ),
+
               siresAsync.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (e, _) => Column(
@@ -434,6 +474,10 @@ class _AddDogScreenState extends ConsumerState<AddDogScreen> {
         } else {
           await repo.updateDogParent(widget.childId!, damId: newDogId, updateDam: true);
         }
+      }
+
+      if (_selectedLitterId != null) {
+        await repo.copyHealthRecordsFromLitterToDog(_selectedLitterId!, newDogId);
       }
 
       if (mounted) {

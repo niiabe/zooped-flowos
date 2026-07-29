@@ -65,4 +65,10 @@ final showRecordsProvider = FutureProvider.family.autoDispose<List<ShowRecord>, 
   return await db.getShowRecordsForDog(dogId);
 });
 
+// All Litters Provider
+final allLittersProvider = FutureProvider.autoDispose<List<domain_litter.Litter>>((ref) async {
+  final repo = ref.watch(pedigreeRepositoryProvider);
+  return await repo.getAllLitters();
+});
+
 

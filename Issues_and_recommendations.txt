@@ -1,1 +1,4 @@
-All issues resolved in v1.9.6:
+- make the added litter editable, it is take health records so health records can be updates for the litter at a go . 
+
+- update the add , let it be in such a way when a dog is added to the kennel and the dog is from a registered litter it will get all the health records directly from the registered litter . 
+these two should streamline some processes.

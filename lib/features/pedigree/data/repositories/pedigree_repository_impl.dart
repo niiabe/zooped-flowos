@@ -220,4 +220,44 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
       throw DatabaseException('Failed to delete litter: $e', e);
     }
   }
+
+  @override
+  Future<void> updateLitterWithPuppies(domain_litter.Litter litter, List<domain.Dog> puppies) async {
+    try {
+      final dbPuppies = puppies.map((p) => p.toCompanion()).toList();
+      await _database.updateLitterWithPuppies(litter.toCompanion(), dbPuppies);
+    } catch (e) {
+      throw DatabaseException('Failed to update litter: $e', e);
+    }
+  }
+
+  @override
+  Future<List<HealthRecord>> getHealthRecordsForLitterPuppies(int litterId) async {
+    return await _database.getHealthRecordsForLitterPuppies(litterId);
+  }
+
+  @override
+  Future<void> addHealthRecordForLitterPuppies(int litterId, String recordType, DateTime date, {DateTime? nextDueDate, String? notes}) async {
+    try {
+      final record = HealthRecordsCompanion.insert(
+        dogId: 0, // placeholder, will be overridden per puppy
+        recordType: recordType,
+        date: date,
+        nextDueDate: nextDueDate != null ? Value(nextDueDate) : const Value.absent(),
+        notes: notes != null ? Value(notes) : const Value.absent(),
+      );
+      await _database.addHealthRecordForLitterPuppies(litterId, record);
+    } catch (e) {
+      throw DatabaseException('Failed to add health records for litter puppies: $e', e);
+    }
+  }
+
+  @override
+  Future<void> copyHealthRecordsFromLitterToDog(int litterId, int newDogId) async {
+    try {
+      await _database.copyHealthRecordsFromLitterToDog(litterId, newDogId);
+    } catch (e) {
+      throw DatabaseException('Failed to copy health records from litter: $e', e);
+    }
+  }
 }

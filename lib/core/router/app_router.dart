@@ -6,6 +6,7 @@ import '../../features/pedigree/presentation/screens/add_dog_screen.dart';
 import '../../features/pedigree/presentation/screens/edit_dog_screen.dart';
 import '../../features/pedigree/presentation/screens/litter_form_screen.dart';
 import '../../features/pedigree/presentation/screens/litter_list_screen.dart';
+import '../../features/pedigree/presentation/screens/litter_health_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/kennel_profile_screen.dart';
 import '../../features/settings/presentation/screens/backup_migration_screen.dart';
@@ -90,6 +91,22 @@ class AppRouter {
         path: '/litter/new',
         builder: (BuildContext context, GoRouterState state) {
           return const LitterFormScreen();
+        },
+      ),
+      GoRoute(
+        path: '/litter/:id/edit',
+        builder: (BuildContext context, GoRouterState state) {
+          final id = _parseId(state);
+          if (id == null) return _invalidIdScreen();
+          return LitterFormScreen(litterId: id);
+        },
+      ),
+      GoRoute(
+        path: '/litter/:id/health',
+        builder: (BuildContext context, GoRouterState state) {
+          final id = _parseId(state);
+          if (id == null) return _invalidIdScreen();
+          return LitterHealthScreen(litterId: id);
         },
       ),
       GoRoute(

@@ -158,6 +158,20 @@ class LitterListScreen extends ConsumerWidget {
                         ),
                         actions: [
                           TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              context.push('/litter/${litter.id}/health');
+                            },
+                            child: const Text('Health Records'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              context.push('/litter/${litter.id}/edit');
+                            },
+                            child: const Text('Edit'),
+                          ),
+                          TextButton(
                             onPressed: () => Navigator.pop(ctx),
                             child: const Text('Close'),
                           ),

@@ -397,10 +397,78 @@ class AppDatabase extends _$AppDatabase {
     return await (select(dogs)..where((d) => d.litterId.equals(litterId))).get();
   }
 
+  Future<void> updateLitterWithPuppies(LittersCompanion litter, List<DogsCompanion> puppies) async {
+    return await transaction(() async {
+      await update(litters).replace(litter);
+      final litterId = litter.id.value;
+      
+      final existingPuppies = await getPuppiesInLitter(litterId);
+      final existingIds = existingPuppies.map((p) => p.id).toSet();
+      
+      final updatedIds = <int>{};
+      for (final puppy in puppies) {
+        if (puppy.id.present && puppy.id.value > 0) {
+          await update(dogs).replace(puppy.copyWith(litterId: Value(litterId)));
+          updatedIds.add(puppy.id.value);
+        } else {
+          await into(dogs).insert(puppy.copyWith(litterId: Value(litterId)));
+        }
+      }
+      
+      final deletedIds = existingIds.difference(updatedIds);
+      if (deletedIds.isNotEmpty) {
+        await (delete(dogs)..where((d) => d.id.isIn(deletedIds))).go();
+      }
+    });
+  }
+
   Future<void> deleteLitter(int id) async {
     await transaction(() async {
       await (update(dogs)..where((d) => d.litterId.equals(id))).write(const DogsCompanion(litterId: Value(null)));
       await (delete(litters)..where((l) => l.id.equals(id))).go();
+    });
+  }
+
+  Future<List<HealthRecord>> getHealthRecordsForLitterPuppies(int litterId) async {
+    final puppies = await getPuppiesInLitter(litterId);
+    if (puppies.isEmpty) return [];
+    final puppyIds = puppies.map((p) => p.id).toList();
+    return await (select(healthRecords)
+      ..where((r) => r.dogId.isIn(puppyIds))
+      ..orderBy([(r) => OrderingTerm.desc(r.date)])).get();
+  }
+
+  Future<void> addHealthRecordForLitterPuppies(int litterId, HealthRecordsCompanion record) async {
+    final puppies = await getPuppiesInLitter(litterId);
+    await batch((batch) {
+      for (final puppy in puppies) {
+        batch.insert(healthRecords, record.copyWith(dogId: Value(puppy.id)));
+      }
+    });
+  }
+
+  Future<void> copyHealthRecordsFromLitterToDog(int litterId, int newDogId) async {
+    final puppies = await getPuppiesInLitter(litterId);
+    if (puppies.isEmpty) return;
+    final puppyIds = puppies.map((p) => p.id).toList();
+    final records = await (select(healthRecords)
+      ..where((r) => r.dogId.isIn(puppyIds))
+      ..orderBy([(r) => OrderingTerm.desc(r.date)])).get();
+    if (records.isEmpty) return;
+    final seen = <String>{};
+    await batch((batch) {
+      for (final record in records) {
+        final key = '${record.recordType}_${record.date}';
+        if (seen.add(key)) {
+          batch.insert(healthRecords, HealthRecordsCompanion(
+            dogId: Value(newDogId),
+            recordType: Value(record.recordType),
+            date: Value(record.date),
+            nextDueDate: Value(record.nextDueDate),
+            notes: Value(record.notes),
+          ));
+        }
+      }
     });
   }
 
