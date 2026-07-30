@@ -1,4 +1,3 @@
-- make the added litter editable, it is take health records so health records can be updates for the litter at a go . 
-
-- update the add , let it be in such a way when a dog is added to the kennel and the dog is from a registered litter it will get all the health records directly from the registered litter . 
-these two should streamline some processes.
+-Why cant I delete an added litter from either of the parents screen,or when I view litter ?
+- when heal record is added it should be saved to the litter .and when add to record to all puppies is tapped then it pulls to added dog from the litter .
+- why did you not divide the apps into the varios versions and build before pushing to GitHub but you instead pushed the big apk which we set rules that is should not be 

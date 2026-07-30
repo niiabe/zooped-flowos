@@ -172,6 +172,52 @@ class LitterListScreen extends ConsumerWidget {
                             child: const Text('Edit'),
                           ),
                           TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              showDialog(
+                                context: context,
+                                builder: (deleteCtx) => AlertDialog(
+                                  title: const Text('Delete Litter'),
+                                  content: const Text(
+                                    'Are you sure you want to delete this litter? '
+                                    'The puppies will not be deleted but they will no longer be associated with this litter.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(deleteCtx),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () async {
+                                        Navigator.pop(deleteCtx);
+                                        try {
+                                          final repo = ref.read(pedigreeRepositoryProvider);
+                                          await repo.deleteLitter(litter.id);
+                                          ref.invalidate(_littersWithParentsProvider);
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Litter deleted successfully')),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Error: $e')),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            child: const Text('Delete'),
+                          ),
+                          TextButton(
                             onPressed: () => Navigator.pop(ctx),
                             child: const Text('Close'),
                           ),

@@ -426,14 +426,71 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
               ),
               title: Text('Whelped: ${DateFormat('yyyy-MM-dd').format(litter.whelpingDate)}'),
               subtitle: Text('${litter.totalPuppiesBorn} total puppies (${litterPuppies.length} registered here)'),
-              children: litterPuppies.isEmpty
-                  ? [const Padding(padding: EdgeInsets.all(16), child: Text('No offspring assigned to this litter yet.', style: TextStyle(color: Colors.grey)))]
-                  : litterPuppies.map((puppy) => ListTile(
-                        leading: const CircleAvatar(child: Icon(Icons.pets, size: 16)),
-                        title: Text(puppy.callName),
-                        subtitle: Text(puppy.registeredName),
-                        onTap: () => context.push('/dog/${puppy.id}'),
-                      )).toList(),
+                children: [
+                  if (litterPuppies.isEmpty)
+                    const Padding(padding: EdgeInsets.all(16), child: Text('No offspring assigned to this litter yet.', style: TextStyle(color: Colors.grey)))
+                  else
+                    ...litterPuppies.map((puppy) => ListTile(
+                          leading: const CircleAvatar(child: Icon(Icons.pets, size: 16)),
+                          title: Text(puppy.callName),
+                          subtitle: Text(puppy.registeredName),
+                          onTap: () => context.push('/dog/${puppy.id}'),
+                        )),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (deleteCtx) => AlertDialog(
+                                title: const Text('Delete Litter'),
+                                content: const Text(
+                                  'Are you sure you want to delete this litter? '
+                                  'The puppies will not be deleted but they will no longer be associated with this litter.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(deleteCtx),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      Navigator.pop(deleteCtx);
+                                      try {
+                                        final repo = ref.read(pedigreeRepositoryProvider);
+                                        await repo.deleteLitter(litter.id);
+                                        ref.invalidate(dogLittersProvider(dog.id));
+                                        ref.invalidate(dogOffspringProvider(dog.id));
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Litter deleted successfully')),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Error: $e')),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                          label: const Text('Delete Litter', style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
             ),
           );
         }),

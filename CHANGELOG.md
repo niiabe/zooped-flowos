@@ -5,6 +5,12 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.9+25] - 2026-07-30
+
+### Added
+- Feature to delete a litter from the Litter List and Dog Detail screens.
+- Build release split per ABI to reduce APK sizes.
+
 ## [1.9.8+24] - 2026-07-29
 
 ### Added
