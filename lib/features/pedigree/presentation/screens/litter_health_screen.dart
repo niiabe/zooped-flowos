@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/services/litter_report_service.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 import '../providers/pedigree_providers.dart';
 
 class LitterHealthScreen extends ConsumerStatefulWidget {
@@ -23,6 +25,45 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
   String _recordType = 'Vaccine';
   DateTime _date = DateTime.now();
   DateTime? _nextDueDate;
+  bool _generatingPdf = false;
+  bool _propagateToPuppies = true;
+
+  Future<void> _generatePdf(WidgetRef ref) async {
+    setState(() => _generatingPdf = true);
+    try {
+      final repo = ref.read(pedigreeRepositoryProvider);
+      final settingsRepo = ref.read(settingsRepositoryProvider);
+      final litter = await repo.getLitterById(widget.litterId);
+      if (litter == null) return;
+      
+      final sire = await repo.getDogByIdFlat(litter.sireId);
+      final dam = await repo.getDogByIdFlat(litter.damId);
+      final puppies = await repo.getPuppiesInLitter(widget.litterId);
+      final healthRecords = await repo.getLitterHealthRecords(widget.litterId);
+      var profile = await settingsRepo.getKennelProfile();
+      
+      final payload = LitterReportPayload(
+        kennelProfile: profile,
+        litter: litter,
+        sire: sire,
+        dam: dam,
+        puppies: puppies,
+        healthRecords: healthRecords,
+      );
+      
+      final pdfBytes = await LitterReportService.generateReport(payload);
+      await LitterReportService.sharePdf(pdfBytes, widget.litterId.toString());
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating PDF: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _generatingPdf = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -41,6 +82,15 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Litter Health Records'),
+        actions: [
+          IconButton(
+            onPressed: _generatingPdf ? null : () => _generatePdf(ref),
+            icon: _generatingPdf 
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.picture_as_pdf),
+            tooltip: 'Generate PDF Report',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(padding),
@@ -48,7 +98,7 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Add Record to All Puppies',
+              'Add Record to Litter',
               style: TextStyle(
                 fontSize: isTablet ? 20.0 : 18.0,
                 fontWeight: FontWeight.bold,
@@ -134,14 +184,26 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
             ),
             SizedBox(height: padding),
 
+            CheckboxListTile(
+              title: const Text('Apply to all puppies'),
+              subtitle: const Text('Also add this record to each puppy in the litter'),
+              value: _propagateToPuppies,
+              onChanged: (value) {
+                setState(() => _propagateToPuppies = value ?? true);
+              },
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            ),
+            SizedBox(height: padding),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _addRecordToAllPuppies,
+                onPressed: _addRecordToLitter,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                 ),
-                child: const Text('Add Record to All Puppies'),
+                child: const Text('Save to Litter Records'),
               ),
             ),
 
@@ -170,7 +232,7 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
                   data: (records) {
                     if (records.isEmpty) {
                       return Text(
-                        'No health records yet for ${puppies.length} puppies',
+                        'No health records yet for this litter',
                         style: TextStyle(color: Colors.grey.shade600),
                       );
                     }
@@ -180,7 +242,7 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
                           Padding(
                             padding: EdgeInsets.only(bottom: padding * 0.5),
                             child: Text(
-                              '${records.length} record${records.length == 1 ? '' : 's'} across ${puppies.length} puppies',
+                              '${records.length} record${records.length == 1 ? '' : 's'} for this litter',
                               style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                             ),
                           ),
@@ -239,23 +301,13 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
     }
   }
 
-  Future<void> _addRecordToAllPuppies() async {
+  Future<void> _addRecordToLitter() async {
     try {
-      final db = ref.read(databaseProvider);
-      final puppies = await db.getPuppiesInLitter(widget.litterId);
-      if (puppies.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No puppies in this litter')),
-          );
-        }
-        return;
-      }
+      final repo = ref.read(pedigreeRepositoryProvider);
 
-      await db.addHealthRecordForLitterPuppies(
-        widget.litterId,
-        HealthRecordsCompanion.insert(
-          dogId: puppies.first.id, // placeholder, will be overridden per puppy
+      await repo.addLitterHealthRecord(
+        LitterHealthRecordsCompanion.insert(
+          litterId: widget.litterId,
           recordType: _recordType,
           date: _date,
           nextDueDate: _nextDueDate != null ? drift.Value(_nextDueDate!) : const drift.Value.absent(),
@@ -263,10 +315,23 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
         ),
       );
 
+      if (_propagateToPuppies) {
+        await repo.addHealthRecordForLitterPuppies(
+          widget.litterId,
+          _recordType,
+          _date,
+          nextDueDate: _nextDueDate,
+          notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+        );
+      }
+
       if (mounted) {
         ref.invalidate(_litterHealthRecordsProvider(widget.litterId));
+        final message = _propagateToPuppies
+            ? '$_recordType added to litter and all puppies'
+            : '$_recordType added to litter records';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$_recordType added to ${puppies.length} puppies')),
+          SnackBar(content: Text(message)),
         );
         _notesController.clear();
         setState(() {
@@ -295,7 +360,7 @@ final _litterPuppiesProvider = FutureProvider.family.autoDispose<List<Dog>, int>
   return await db.getPuppiesInLitter(litterId);
 });
 
-final _litterHealthRecordsProvider = FutureProvider.family.autoDispose<List<HealthRecord>, int>((ref, litterId) async {
-  final db = ref.watch(databaseProvider);
-  return await db.getHealthRecordsForLitterPuppies(litterId);
+final _litterHealthRecordsProvider = FutureProvider.family.autoDispose<List<LitterHealthRecord>, int>((ref, litterId) async {
+  final repo = ref.watch(pedigreeRepositoryProvider);
+  return await repo.getLitterHealthRecords(litterId);
 });

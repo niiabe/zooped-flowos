@@ -5,6 +5,17 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0+26] - 2026-07-30
+
+### Added
+- **Financial Visualizations:** Added 6-month Revenue vs Expenses Bar Chart and Expense Breakdown Pie Chart using l_chart.
+- **Litter Report PDFs:** Instantly generate, preview, and share professional PDF reports for litters, featuring Sire/Dam summaries, puppy rosters, and health records.
+- **Litter-Level Health Records:** Add health records directly to a litter (saving to a new litterHealthRecords database table), with an optional checkbox to propagate the record to all puppies in the litter simultaneously.
+- **Live UI Updates via Riverpod Streams:** Transformed several future-based data providers (Show Records, Health Records, Photo Gallery) into stream-based ones, so the UI automatically updates exactly when new records are added or deleted.
+
+### Fixed
+- Fixed several relative import path issues causing compiler errors during recent folder structure refactoring (moved shows_tab.dart, health_tab.dart, offspring_tab.dart, etc., into dog_detail/).
+
 ## [1.9.9+25] - 2026-07-30
 
 ### Added
@@ -268,3 +279,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - compileSdk: flutter.compileSdkVersion
 - Min SDK: Flutter default
 - Kotlin MainActivity
+

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/error/error_handler.dart';
 import '../providers/pedigree_providers.dart';
+import 'dashboard_screen.dart';
 
 class KennelStats {
   final int totalDogs;
@@ -26,21 +26,21 @@ class KennelStats {
 }
 
 final analyticsProvider = StreamProvider.autoDispose<KennelStats>((ref) async* {
-  final db = ref.watch(databaseProvider);
+  final repo = ref.watch(pedigreeRepositoryProvider);
 
-  final dogsStream = db.select(db.dogs).watch();
-  final littersStream = db.select(db.litters).watch();
+  final dogsStream = repo.watchFilteredDogs();
+  final littersAsync = repo.getAllLitters();
 
-  await for (final _ in Rx.combineLatest2(dogsStream, littersStream, (a, b) => null)) {
-    final dogs = await db.select(db.dogs).get();
-    final litters = await db.select(db.litters).get();
+  await for (final dogs in dogsStream) {
+    final litters = await littersAsync;
 
     final males = dogs.where((d) => d.sex == 'Male').length;
     final females = dogs.where((d) => d.sex == 'Female').length;
 
     double avgLitterSize = 0;
     if (litters.isNotEmpty) {
-      final int totalPuppies = litters.fold<int>(0, (sum, litter) => sum + litter.puppiesBornAlive + litter.puppiesStillborn);
+      final int totalPuppies = litters.fold<int>(
+          0, (sum, litter) => sum + litter.puppiesBornAlive + litter.puppiesStillborn);
       avgLitterSize = totalPuppies / litters.length;
     }
 
@@ -75,7 +75,7 @@ class AnalyticsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Kennel Analytics 📊'),
+        title: const Text('Kennel Analytics'),
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.secondaryColor,
         elevation: 0,
@@ -91,14 +91,13 @@ class AnalyticsScreen extends ConsumerWidget {
                     Icons.analytics_outlined,
                     size: 80.0,
                     color: Colors.grey.shade300,
-                  ).animate(onPlay: (c) => c.repeat(reverse: true)).scaleXY(begin: 0.9, end: 1.1, duration: 1.seconds, curve: Curves.easeInOut),
+                  )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .scaleXY(begin: 0.9, end: 1.1, duration: 1.seconds, curve: Curves.easeInOut),
                   const SizedBox(height: 16.0),
                   Text(
                     'No Data Available',
-                    style: TextStyle(
-                      fontSize: 20.0,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 20.0, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 8.0),
                   Text(
@@ -143,7 +142,8 @@ class AnalyticsScreen extends ConsumerWidget {
                   ],
                 ),
                 SizedBox(height: padding),
-                _buildProgressBar(stats.totalMales, stats.totalFemales).animate().fadeIn(delay: 200.ms),
+                _buildProgressBar(stats.totalMales, stats.totalFemales)
+                    .animate().fadeIn(delay: 200.ms),
                 SizedBox(height: padding),
                 _buildStatCard(
                   title: 'Total Litters Whelped',
@@ -159,18 +159,25 @@ class AnalyticsScreen extends ConsumerWidget {
                   color: Colors.purple,
                 ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1, end: 0.0),
                 SizedBox(height: padding),
-                _buildBreedDistribution(stats.breedCounts).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0.0),
+                _buildBreedDistribution(stats.breedCounts)
+                    .animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0.0),
               ],
             ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error loading stats: ${ErrorHandler.getUserFriendlyMessage(e)}')),
+        error: (e, _) =>
+            Center(child: Text('Error loading stats: ${ErrorHandler.getUserFriendlyMessage(e)}')),
       ),
     );
   }
 
-  Widget _buildStatCard({required String title, required String value, required IconData icon, required Color color}) {
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
     return Card(
       elevation: 4,
       shadowColor: color.withValues(alpha: 0.2),
@@ -210,7 +217,8 @@ class AnalyticsScreen extends ConsumerWidget {
 
     return Column(
       children: [
-        const Text('Sex Distribution', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        const Text('Sex Distribution',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
         const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -247,7 +255,9 @@ class AnalyticsScreen extends ConsumerWidget {
               children: [
                 Icon(Icons.pets, color: Colors.orange),
                 SizedBox(width: 8),
-                Text('Breed Distribution', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
+                Text('Breed Distribution',
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
               ],
             ),
             const SizedBox(height: 16),
@@ -258,7 +268,8 @@ class AnalyticsScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(entry.key, style: const TextStyle(fontSize: 16)),
-                    Text(entry.value.toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(entry.value.toString(),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ],
                 ),
               );

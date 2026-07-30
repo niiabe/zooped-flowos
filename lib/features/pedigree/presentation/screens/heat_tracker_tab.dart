@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/database/app_database.dart' hide Dog;
 import '../../domain/entities/dog.dart';
 import '../providers/pedigree_providers.dart';
 
@@ -38,8 +37,6 @@ class HeatTrackerTab extends ConsumerWidget {
   }
 
   Widget _buildFemaleCard(BuildContext context, WidgetRef ref, Dog dog) {
-    final db = ref.watch(databaseProvider);
-
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0),
       child: ExpansionTile(
@@ -53,7 +50,7 @@ class HeatTrackerTab extends ConsumerWidget {
           Consumer(
             builder: (context, ref, _) {
               final heatCyclesAsync = ref.watch(heatCyclesProvider(dog.id));
-              
+
               return heatCyclesAsync.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.all(16.0),
@@ -69,12 +66,23 @@ class HeatTrackerTab extends ConsumerWidget {
                       if (cycles.isNotEmpty)
                         ...cycles.map((cycle) => ListTile(
                               title: Text('Started: ${DateFormat('MMM d, yyyy').format(cycle.startDate)}'),
-                              subtitle: cycle.endDate != null 
+                              subtitle: cycle.endDate != null
                                   ? Text('Ended: ${DateFormat('MMM d, yyyy').format(cycle.endDate!)}')
                                   : const Text('Ongoing'),
                               trailing: IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => db.deleteHeatCycle(cycle.id),
+                                onPressed: () async {
+                                  try {
+                                    final repo = ref.read(pedigreeRepositoryProvider);
+                                    await repo.deleteHeatCycle(cycle.id);
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error deleting heat cycle: $e')),
+                                      );
+                                    }
+                                  }
+                                },
                               ),
                             )),
                       if (cycles.isEmpty)
@@ -87,7 +95,7 @@ class HeatTrackerTab extends ConsumerWidget {
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.add),
                           label: const Text('Log Heat Cycle'),
-                          onPressed: () => _showAddHeatDialog(context, db, dog.id),
+                          onPressed: () => _showAddHeatDialog(context, ref, dog.id),
                         ),
                       ),
                     ],
@@ -101,7 +109,7 @@ class HeatTrackerTab extends ConsumerWidget {
     );
   }
 
-  void _showAddHeatDialog(BuildContext context, AppDatabase db, int dogId) {
+  void _showAddHeatDialog(BuildContext context, WidgetRef ref, int dogId) {
     DateTime? selectedDate = DateTime.now();
 
     showDialog(
@@ -139,11 +147,17 @@ class HeatTrackerTab extends ConsumerWidget {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    await db.addHeatCycle(HeatCyclesCompanion.insert(
-                      dogId: dogId,
-                      startDate: selectedDate!,
-                    ));
-                    if (context.mounted) Navigator.pop(context);
+                    try {
+                      final repo = ref.read(pedigreeRepositoryProvider);
+                      await repo.addHeatCycle(dogId, selectedDate!);
+                      if (context.mounted) Navigator.pop(context);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error adding heat cycle: $e')),
+                        );
+                      }
+                    }
                   },
                   child: const Text('Save'),
                 ),

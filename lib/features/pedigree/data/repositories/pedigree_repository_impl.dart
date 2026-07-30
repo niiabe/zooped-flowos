@@ -97,7 +97,17 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
   @override
   Future<int> insertDog(domain.Dog dog, {int? sireId, int? damId}) async {
     try {
-      return await _database.insertDog(dog.toCompanion(overrideSireId: sireId, overrideDamId: damId));
+      final sanitized = dog.copyWith(
+        registeredName: dog.registeredName.trim(),
+        callName: dog.callName.trim(),
+        breed: dog.breed?.trim(),
+        colorMarkings: dog.colorMarkings?.trim(),
+        microchipNumber: dog.microchipNumber?.trim(),
+        registerType: dog.registerType?.trim(),
+        dnaProfileNumber: dog.dnaProfileNumber?.trim(),
+        notes: dog.notes?.trim(),
+      );
+      return await _database.insertDog(sanitized.toCompanion(overrideSireId: sireId, overrideDamId: damId));
     } catch (e) {
       throw DatabaseException('Failed to insert dog: $e', e);
     }
@@ -106,7 +116,17 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
   @override
   Future<void> updateDog(domain.Dog dog, {int? sireId, int? damId}) async {
     try {
-      await _database.updateDog(dog.toCompanion(overrideSireId: sireId, overrideDamId: damId));
+      final sanitized = dog.copyWith(
+        registeredName: dog.registeredName.trim(),
+        callName: dog.callName.trim(),
+        breed: dog.breed?.trim(),
+        colorMarkings: dog.colorMarkings?.trim(),
+        microchipNumber: dog.microchipNumber?.trim(),
+        registerType: dog.registerType?.trim(),
+        dnaProfileNumber: dog.dnaProfileNumber?.trim(),
+        notes: dog.notes?.trim(),
+      );
+      await _database.updateDog(sanitized.toCompanion(overrideSireId: sireId, overrideDamId: damId));
     } catch (e) {
       throw DatabaseException('Failed to update dog: $e', e);
     }
@@ -232,8 +252,164 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
   }
 
   @override
+  Future<void> deleteShowRecord(int id) async {
+    try {
+      await (_database.delete(_database.showRecords)..where((s) => s.id.equals(id))).go();
+    } catch (e) {
+      throw DatabaseException('Failed to delete show record: $e', e);
+    }
+  }
+
+  @override
+  Future<void> addDogPhoto(int dogId, String photoPath) async {
+    try {
+      await _database.into(_database.dogPhotos).insert(
+        DogPhotosCompanion.insert(dogId: dogId, photoPath: photoPath),
+      );
+    } catch (e) {
+      throw DatabaseException('Failed to add dog photo: $e', e);
+    }
+  }
+
+  @override
+  Future<void> deleteDogPhoto(int id) async {
+    try {
+      await (_database.delete(_database.dogPhotos)..where((p) => p.id.equals(id))).go();
+    } catch (e) {
+      throw DatabaseException('Failed to delete dog photo: $e', e);
+    }
+  }
+
+  @override
+  Future<void> addHeatCycle(int dogId, DateTime startDate) async {
+    try {
+      await _database.into(_database.heatCycles).insert(
+        HeatCyclesCompanion.insert(dogId: dogId, startDate: startDate),
+      );
+    } catch (e) {
+      throw DatabaseException('Failed to add heat cycle: $e', e);
+    }
+  }
+
+  @override
+  Future<void> deleteHeatCycle(int id) async {
+    try {
+      await (_database.delete(_database.heatCycles)..where((h) => h.id.equals(id))).go();
+    } catch (e) {
+      throw DatabaseException('Failed to delete heat cycle: $e', e);
+    }
+  }
+
+  @override
+  Future<int> getTotalDogCount() async {
+    try {
+      final count = _database.dogs.id.count();
+      final query = _database.selectOnly(_database.dogs)..addColumns([count]);
+      final result = await query.getSingle();
+      return result.read(count) ?? 0;
+    } catch (e) {
+      throw DatabaseException('Failed to get dog count: $e', e);
+    }
+  }
+
+  @override
+  Future<int> getTotalLitterCount() async {
+    try {
+      final count = _database.litters.id.count();
+      final query = _database.selectOnly(_database.litters)..addColumns([count]);
+      final result = await query.getSingle();
+      return result.read(count) ?? 0;
+    } catch (e) {
+      throw DatabaseException('Failed to get litter count: $e', e);
+    }
+  }
+
+  @override
+  Future<List<domain.Dog>> getAllDogsForAnalytics() async {
+    try {
+      final dogsData = await _database.getAllDogs();
+      return dogsData.map((dog) => dog.toDomain()).toList();
+    } catch (e) {
+      throw DatabaseException('Failed to get dogs for analytics: $e', e);
+    }
+  }
+
+  @override
+  Future<int> addHealthRecord(HealthRecordsCompanion record) async {
+    try {
+      return await _database.into(_database.healthRecords).insert(record);
+    } catch (e) {
+      throw DatabaseException('Failed to add health record: $e', e);
+    }
+  }
+
+  @override
+  Future<List<HealthRecord>> getDogHealthRecords(int dogId) async {
+    try {
+      return await (_database.select(_database.healthRecords)
+            ..where((h) => h.dogId.equals(dogId))
+            ..orderBy([(h) => OrderingTerm(expression: h.date, mode: OrderingMode.desc)]))
+          .get();
+    } catch (e) {
+      throw DatabaseException('Failed to get health records: $e', e);
+    }
+  }
+
+  @override
+  Future<void> deleteHealthRecord(int id) async {
+    try {
+      await (_database.delete(_database.healthRecords)..where((h) => h.id.equals(id))).go();
+    } catch (e) {
+      throw DatabaseException('Failed to delete health record: $e', e);
+    }
+  }
+
+  @override
+  Future<void> updateHealthRecord(HealthRecord record) async {
+    try {
+      await _database.update(_database.healthRecords).replace(record);
+    } catch (e) {
+      throw DatabaseException('Failed to update health record: $e', e);
+    }
+  }
+
+  @override
+  Future<void> addLitterHealthRecord(LitterHealthRecordsCompanion record) async {
+    try {
+      await _database.into(_database.litterHealthRecords).insert(record);
+    } catch (e) {
+      throw DatabaseException('Failed to add litter health record: $e', e);
+    }
+  }
+
+  @override
+  Future<List<LitterHealthRecord>> getLitterHealthRecords(int litterId) async {
+    try {
+      return await (_database.select(_database.litterHealthRecords)
+            ..where((l) => l.litterId.equals(litterId))
+            ..orderBy([(l) => OrderingTerm(expression: l.date, mode: OrderingMode.desc)]))
+          .get();
+    } catch (e) {
+      throw DatabaseException('Failed to get litter health records: $e', e);
+    }
+  }
+
+  @override
+  Future<void> deleteLitterHealthRecord(int id) async {
+    try {
+      await (_database.delete(_database.litterHealthRecords)..where((l) => l.id.equals(id))).go();
+    } catch (e) {
+      throw DatabaseException('Failed to delete litter health record: $e', e);
+    }
+  }
+
+  @override
   Future<List<HealthRecord>> getHealthRecordsForLitterPuppies(int litterId) async {
-    return await _database.getHealthRecordsForLitterPuppies(litterId);
+    try {
+      return await _database.getHealthRecordsForLitterPuppies(litterId);
+    } catch (e) {
+      throw DatabaseException('Failed to get health records for litter puppies: $e', e);
+    }
   }
 
   @override

@@ -1,6 +1,6 @@
 import '../entities/dog.dart';
 import '../entities/litter.dart';
-import '../../../../core/database/app_database.dart' show HealthRecord;
+import '../../../../core/database/app_database.dart' show HealthRecordsCompanion, LitterHealthRecordsCompanion, HealthRecord, LitterHealthRecord;
 
 abstract class PedigreeRepository {
   // Dog Data Contracts
@@ -32,6 +32,32 @@ abstract class PedigreeRepository {
   Stream<List<Litter>> watchAllLitters();
   Future<List<Dog>> getPuppiesInLitter(int litterId);
   Future<void> deleteLitter(int id);
+
+  Future<int> addHealthRecord(HealthRecordsCompanion record);
+  Future<List<HealthRecord>> getDogHealthRecords(int dogId);
+  Future<void> deleteHealthRecord(int id);
+  Future<void> updateHealthRecord(HealthRecord record);
+
+  // Show Records
+  Future<void> deleteShowRecord(int id);
+
+  // Photo Gallery
+  Future<void> addDogPhoto(int dogId, String photoPath);
+  Future<void> deleteDogPhoto(int id);
+
+  // Heat Cycles
+  Future<void> addHeatCycle(int dogId, DateTime startDate);
+  Future<void> deleteHeatCycle(int id);
+
+  // Analytics
+  Future<int> getTotalDogCount();
+  Future<int> getTotalLitterCount();
+  Future<List<Dog>> getAllDogsForAnalytics();
+
+  // Litter Health Records
+  Future<void> addLitterHealthRecord(LitterHealthRecordsCompanion record);
+  Future<List<LitterHealthRecord>> getLitterHealthRecords(int litterId);
+  Future<void> deleteLitterHealthRecord(int id);
 
   // Litter Health Record Contracts
   Future<List<HealthRecord>> getHealthRecordsForLitterPuppies(int litterId);

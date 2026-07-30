@@ -1,26 +1,21 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:share_plus/share_plus.dart';
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
-import 'package:printing/printing.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import '../../../../core/database/app_database.dart' hide Dog;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../../../core/services/certificate_service.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/services/file_storage_service.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/widgets/delete_confirm_dialog.dart';
 import '../../domain/entities/dog.dart';
 import '../providers/pedigree_providers.dart';
-import '../providers/shared_providers.dart';
 import '../widgets/pedigree_canvas.dart';
+import 'dog_detail/health_tab.dart';
+import 'dog_detail/shows_tab.dart';
+import 'dog_detail/offspring_tab.dart';
+import 'dog_detail/photo_gallery.dart';
+import 'dog_detail/certificate_actions.dart';
 import 'dashboard_screen.dart';
 
 final _dogProvider = FutureProvider.family<Dog, int>((ref, dogId) async {
@@ -41,13 +36,30 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
   bool _generatingPdf = false;
   final GlobalKey _pedigreeExportKey = GlobalKey();
   Dog? _dog;
-  final _imagePicker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDog();
+  }
+
+  void _loadDog() {
+    ref.read(_dogProvider(widget.dogId)).whenData((dog) {
+      if (mounted) setState(() => _dog = dog);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final dogAsync = ref.watch(_dogProvider(widget.dogId));
     final padding = Responsive.padding(context);
     final isTablet = Responsive.isTablet(context);
+
+    ref.listen<AsyncValue<Dog>>(_dogProvider(widget.dogId), (prev, next) {
+      next.whenData((dog) {
+        if (mounted) setState(() => _dog = dog);
+      });
+    });
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -90,8 +102,6 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
           ),
         ),
         data: (dog) {
-          _dog = dog;
-          
           const tabBar = TabBar(
             isScrollable: true,
             labelColor: AppTheme.primaryColor,
@@ -117,7 +127,9 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                 onUnknownTap: (childDog, isSire, roleName) async {
                   if (childDog == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please add the missing parent first before adding grandparents.')),
+                      const SnackBar(
+                          content: Text(
+                              'Please add the missing parent first before adding grandparents.')),
                     );
                     return;
                   }
@@ -126,7 +138,8 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       title: Text('Add $roleName'),
-                      content: Text('Would you like to add a new dog as the $roleName for ${childDog.callName}?'),
+                      content: Text(
+                          'Would you like to add a new dog as the $roleName for ${childDog.callName}?'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
@@ -145,16 +158,16 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                       'childId': childDog.id,
                       'isSire': isSire,
                     });
-                    
+
                     if (result == true && context.mounted) {
                       ref.invalidate(_dogProvider(widget.dogId));
                     }
                   }
                 },
               ),
-              _buildHealthTab(context, dog),
-              _buildShowTab(context, dog),
-              _buildOffspringTab(context, dog),
+              HealthTab(dog: dog),
+              ShowsTab(dog: dog),
+              OffspringTab(dog: dog),
             ],
           );
 
@@ -237,292 +250,12 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     );
   }
 
-  Future<Map<int, Uint8List>> _preloadDogImages(Dog rootDog) async {
-    final Map<int, Uint8List> imageMap = {};
-    final List<Dog> allAncestors = [rootDog];
-    
-    // Breadth-first collection of all ancestors
-    int i = 0;
-    while (i < allAncestors.length) {
-      final current = allAncestors[i];
-      if (current.sire != null) allAncestors.add(current.sire!);
-      if (current.dam != null) allAncestors.add(current.dam!);
-      i++;
-    }
-
-    // Process all images in parallel
-    await Future.wait(allAncestors.map((dog) async {
-      if (dog.photoPath != null && dog.photoPath!.isNotEmpty) {
-        try {
-          final file = File(dog.photoPath!);
-          if (await file.exists()) {
-            final bytes = await file.readAsBytes();
-            imageMap[dog.id] = bytes;
-          }
-        } catch (_) {
-          // Ignore failed image loads
-        }
-      }
-    }));
-    
-    return imageMap;
-  }
-
-  Future<void> _generateAndPrintCertificate(Dog dog) async {
-    setState(() => _generatingPdf = true);
-    try {
-      final profile = await ref.read(kennelProfileProvider.future);
-      final logoFile = profile.localLogoPath != null ? File(profile.localLogoPath!) : null;
-      final preloadedImages = await _preloadDogImages(dog);
-      
-      final pdfBytes = await CertificateService.generateCertificate(
-        dog: dog,
-        kennelProfile: profile,
-        logoFile: logoFile,
-        preloadedImages: preloadedImages,
-      );
-      await CertificateService.printPdf(pdfBytes);
-    } on SqliteException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message.contains('UNIQUE')
-                ? 'A record with this name or microchip already exists'
-                : 'Error generating certificate: $e'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating certificate: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _generatingPdf = false);
-    }
-  }
-
-  Future<void> _generateAndShareSocial(Dog dog) async {
-    setState(() => _generatingPdf = true);
-    try {
-      final profile = await ref.read(kennelProfileProvider.future);
-      final logoFile = profile.localLogoPath != null ? File(profile.localLogoPath!) : null;
-      final preloadedImages = await _preloadDogImages(dog);
-      
-      final pdfBytes = await CertificateService.generateCertificate(
-        dog: dog,
-        kennelProfile: profile,
-        logoFile: logoFile,
-        preloadedImages: preloadedImages,
-      );
-
-      // Rasterize the PDF to an image
-      await for (final page in Printing.raster(pdfBytes, pages: [0], dpi: 300)) {
-        final pngBytes = await page.toPng();
-        final tempDir = await getTemporaryDirectory();
-        final file = File(p.join(tempDir.path, 'social_pedigree_${dog.id}.png'));
-        await file.writeAsBytes(pngBytes);
-        
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Check out ${dog.callName}\'s Pedigree! #ZooPed',
-        );
-        break; // Only need the first page
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating image: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _generatingPdf = false);
-    }
-  }
-
-  Future<void> _generateAndShareCertificate(Dog dog) async {
-    setState(() => _generatingPdf = true);
-    try {
-      final profile = await ref.read(kennelProfileProvider.future);
-      final logoFile = profile.localLogoPath != null ? File(profile.localLogoPath!) : null;
-      final preloadedImages = await _preloadDogImages(dog);
-      
-      final pdfBytes = await CertificateService.generateCertificate(
-        dog: dog,
-        kennelProfile: profile,
-        logoFile: logoFile,
-        preloadedImages: preloadedImages,
-      );
-      await CertificateService.sharePdf(pdfBytes, dog.registeredName);
-    } on SqliteException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message.contains('UNIQUE')
-                ? 'A record with this name or microchip already exists'
-                : 'Error generating certificate: $e'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating certificate: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _generatingPdf = false);
-    }
-  }
-
-  Widget _buildOffspringTab(BuildContext context, Dog dog) {
-    final offspringAsync = ref.watch(dogOffspringProvider(dog.id));
-    final littersAsync = ref.watch(dogLittersProvider(dog.id));
-
-    if (offspringAsync.isLoading || littersAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (offspringAsync.hasError || littersAsync.hasError) {
-      return Center(child: Text('Error loading records'));
-    }
-
-    final litters = littersAsync.value ?? [];
-    final offspring = offspringAsync.value ?? [];
-
-    if (litters.isEmpty && offspring.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.pets, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text('No litters or offspring recorded yet', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
-          ],
-        ),
-      );
-    }
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (litters.isNotEmpty)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: Text('Litters', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ),
-        ...litters.map((litter) {
-          final litterPuppies = offspring.where((p) => p.litterId == litter.id).toList();
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ExpansionTile(
-              initiallyExpanded: litterPuppies.isNotEmpty,
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.family_restroom, color: AppTheme.primaryColor),
-              ),
-              title: Text('Whelped: ${DateFormat('yyyy-MM-dd').format(litter.whelpingDate)}'),
-              subtitle: Text('${litter.totalPuppiesBorn} total puppies (${litterPuppies.length} registered here)'),
-                children: [
-                  if (litterPuppies.isEmpty)
-                    const Padding(padding: EdgeInsets.all(16), child: Text('No offspring assigned to this litter yet.', style: TextStyle(color: Colors.grey)))
-                  else
-                    ...litterPuppies.map((puppy) => ListTile(
-                          leading: const CircleAvatar(child: Icon(Icons.pets, size: 16)),
-                          title: Text(puppy.callName),
-                          subtitle: Text(puppy.registeredName),
-                          onTap: () => context.push('/dog/${puppy.id}'),
-                        )),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton.icon(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (deleteCtx) => AlertDialog(
-                                title: const Text('Delete Litter'),
-                                content: const Text(
-                                  'Are you sure you want to delete this litter? '
-                                  'The puppies will not be deleted but they will no longer be associated with this litter.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(deleteCtx),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () async {
-                                      Navigator.pop(deleteCtx);
-                                      try {
-                                        final repo = ref.read(pedigreeRepositoryProvider);
-                                        await repo.deleteLitter(litter.id);
-                                        ref.invalidate(dogLittersProvider(dog.id));
-                                        ref.invalidate(dogOffspringProvider(dog.id));
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Litter deleted successfully')),
-                                          );
-                                        }
-                                      } catch (e) {
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Error: $e')),
-                                          );
-                                        }
-                                      }
-                                    },
-                                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                    child: const Text('Delete'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                          label: const Text('Delete Litter', style: TextStyle(color: Colors.red)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-            ),
-          );
-        }),
-        ...() {
-          final unassigned = offspring.where((p) => p.litterId == null).toList();
-          if (unassigned.isEmpty) return <Widget>[];
-          return [
-            const Padding(
-              padding: EdgeInsets.only(top: 16, bottom: 8),
-              child: Text('Unassigned Offspring', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-            ...unassigned.map((puppy) => Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.pets, size: 16)),
-                    title: Text(puppy.callName),
-                    subtitle: Text(puppy.registeredName),
-                    onTap: () => context.push('/dog/${puppy.id}'),
-                  ),
-                ))
-          ];
-        }(),
-        const SizedBox(height: 24),
-      ],
-    );
-  }
-
   void _showQrCode(BuildContext context) {
     final dog = _dog;
     if (dog == null) return;
 
-    final qrData = 'ZOOPED:${dog.id}|${dog.registeredName}|${dog.callName}|${dog.breed ?? "Unknown"}|${dog.sex}|${dog.microchipNumber ?? "N/A"}';
+    final qrData =
+        'ZOOPED:${dog.id}|${dog.registeredName}|${dog.callName}|${dog.breed ?? "Unknown"}|${dog.sex}|${dog.microchipNumber ?? "N/A"}';
 
     showDialog(
       context: context,
@@ -573,28 +306,14 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     final dog = _dog;
     if (dog == null) return;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Dog'),
-        content: Text(
+    final confirmed = await showDeleteConfirmDialog(
+      context,
+      title: 'Delete Dog',
+      message:
           'Are you sure you want to delete ${dog.callName}? This will remove all records related to this dog, including pedigree links and associated litters.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
 
-    if (confirmed == true && context.mounted) {
+    if (confirmed && context.mounted) {
       try {
         await ref.read(pedigreeRepositoryProvider).deleteDog(widget.dogId);
         if (context.mounted) {
@@ -631,7 +350,6 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Premium Gradient Header
         Container(
           padding: EdgeInsets.fromLTRB(padding, padding * 1.5, padding, padding),
           decoration: BoxDecoration(
@@ -687,7 +405,8 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                   tag: 'dog_banner_photo_${dog.id}',
                   child: CircleAvatar(
                     radius: isTablet ? 40 : 30,
-                    backgroundImage: ResizeImage(FileImage(File(dog.photoPath!)), width: 150),
+                    backgroundImage:
+                        ResizeImage(FileImage(File(dog.photoPath!)), width: 150),
                     onBackgroundImageError: (e, s) => {},
                   ),
                 ),
@@ -695,7 +414,6 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
           ),
         ),
 
-        // Photo
         if (dog.photoPath != null)
           Padding(
             padding: EdgeInsets.all(padding),
@@ -709,13 +427,13 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
                   width: double.infinity,
                   fit: BoxFit.cover,
                   cacheWidth: 800,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox.shrink(),
                 ),
               ),
             ),
           ),
-        
-        // Chips Area
+
         Padding(
           padding: EdgeInsets.symmetric(horizontal: padding),
           child: Wrap(
@@ -727,8 +445,8 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
               if (dog.microchipNumber != null && dog.microchipNumber!.isNotEmpty)
                 _buildDetailChip(Icons.memory, 'Chip', dog.microchipNumber!),
               if (dog.dateOfBirth != null)
-                if (dog.dateOfBirth != null)
-                  _buildDetailChip(Icons.cake, 'DOB', DateFormat('yyyy-MM-dd').format(dog.dateOfBirth!)),
+                _buildDetailChip(Icons.cake, 'DOB',
+                    DateFormat('yyyy-MM-dd').format(dog.dateOfBirth!)),
               if (dog.colorMarkings != null && dog.colorMarkings!.isNotEmpty)
                 _buildDetailChip(Icons.palette, 'Color', dog.colorMarkings!),
               if (dog.registerType != null && dog.registerType!.isNotEmpty)
@@ -736,68 +454,28 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
               if (dog.appraisalScore != null)
                 _buildAppraisalBadge(dog.appraisalScore!),
               if (dog.inbreedingCoefficient != null)
-                _buildDetailChip(Icons.science, 'COI', '${dog.inbreedingCoefficient}%'),
+                _buildDetailChip(
+                    Icons.science, 'COI', '${dog.inbreedingCoefficient}%'),
             ],
           ),
         ),
 
-        // Action Buttons
         SafeArea(
           top: false,
           child: Padding(
             padding: EdgeInsets.all(padding),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _generatingPdf ? null : () => _generateAndPrintCertificate(dog),
-                    icon: _generatingPdf
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.print, size: 20),
-                    label: const Text('Print'),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 14.0),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                    ),
-                  ),
-                ),
-                SizedBox(width: padding * 0.5),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _generatingPdf ? null : () => _generateAndShareCertificate(dog),
-                    icon: _generatingPdf
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.picture_as_pdf, size: 20),
-                    label: const Text('PDF'),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 14.0),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                      side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.5)),
-                    ),
-                  ),
-                ),
-                SizedBox(width: padding * 0.5),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _generatingPdf ? null : () => _generateAndShareSocial(dog),
-                    icon: _generatingPdf
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.share, size: 20),
-                    label: const Text('Social'),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: isTablet ? 16.0 : 14.0),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                      side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.5)),
-                    ),
-                  ),
-                ),
-              ],
+            child: CertificateActions(
+              dog: dog,
+              generatingPdf: _generatingPdf,
+              onGeneratingChanged: (value) {
+                if (mounted) setState(() => _generatingPdf = value);
+              },
+              exportKey: _pedigreeExportKey,
             ),
           ),
         ),
 
-        // Photo Gallery Section
-        _buildPhotoGallery(context, dog),
+        PhotoGallery(dog: dog),
         const SizedBox(height: 16.0),
       ],
     );
@@ -864,17 +542,19 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [badgeColor.withValues(alpha: 0.1), badgeColor.withValues(alpha: 0.2)],
+          colors: [
+            badgeColor.withValues(alpha: 0.1),
+            badgeColor.withValues(alpha: 0.2)
+          ],
         ),
         borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(color: badgeColor.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(
+            color: badgeColor.withValues(alpha: 0.3), width: 1.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16.0, color: badgeColor)
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .scaleXY(begin: 0.9, end: 1.1, duration: 1.seconds, curve: Curves.easeInOut),
+          Icon(icon, size: 16.0, color: badgeColor),
           const SizedBox(width: 6.0),
           Text(
             '$label: ',
@@ -894,358 +574,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
           ),
         ],
       ),
-    ).animate().fadeIn().scale(curve: Curves.easeOutBack);
-  }
-
-  Widget _buildPhotoGallery(BuildContext context, Dog dog) {
-    final galleryAsync = ref.watch(dogGalleryProvider(dog.id));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Photo Gallery', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              TextButton.icon(
-                onPressed: () => _addGalleryPhoto(dog.id),
-                icon: const Icon(Icons.add_a_photo, size: 18),
-                label: const Text('Add'),
-              ),
-            ],
-          ),
-        ),
-        galleryAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Error loading gallery: $e'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => ref.invalidate(dogGalleryProvider(dog.id)),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-          data: (photos) {
-            if (photos.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text('No photos yet. Add some to build a gallery!', style: TextStyle(color: Colors.grey)),
-              );
-            }
-            return SizedBox(
-              height: 120,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: photos.length,
-                itemBuilder: (context, index) {
-                  final photo = photos[index];
-                  return Stack(
-                    children: [
-                      Container(
-                        width: 120,
-                        margin: const EdgeInsets.only(right: 8.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(
-                            File(photo.photoPath),
-                            fit: BoxFit.cover,
-                            cacheWidth: 400,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.broken_image, color: Colors.grey),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 4,
-                        right: 12,
-                        child: GestureDetector(
-                          onTap: () => _deleteGalleryPhoto(photo.id, dog.id, photo.photoPath),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.black54,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.close, size: 14, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            );
-          },
-        ),
-      ],
     );
-  }
-
-  Future<void> _addGalleryPhoto(int dogId) async {
-    final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      final db = ref.read(databaseProvider);
-      await db.addDogPhoto(DogPhotosCompanion.insert(
-        dogId: dogId,
-        photoPath: picked.path,
-      ));
-      ref.invalidate(dogGalleryProvider(dogId));
-    }
-  }
-
-  Future<void> _deleteGalleryPhoto(int photoId, int dogId, String path) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Photo'),
-        content: const Text('Remove this photo from the gallery?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      final db = ref.read(databaseProvider);
-      await FileStorageService.deleteFile(path);
-      await db.deleteDogPhoto(photoId);
-      ref.invalidate(dogGalleryProvider(dogId));
-    }
-  }
-
-  Widget _buildHealthTab(BuildContext context, Dog dog) {
-    final healthAsync = ref.watch(healthRecordsProvider(dog.id));
-    
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Medical History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ElevatedButton.icon(
-                onPressed: () => context.push('/dog/${dog.id}/health/new'),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Record'),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: healthAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Error: $e'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => ref.invalidate(healthRecordsProvider(dog.id)),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
-            data: (records) {
-              if (records.isEmpty) {
-                return const Center(
-                  child: Text('No health records found.', style: TextStyle(color: Colors.grey)),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: records.length,
-                itemBuilder: (context, index) {
-                  final record = records[index];
-                  final dateStr = DateFormat('yyyy-MM-dd').format(record.date);
-                  final nextDueStr = record.nextDueDate != null ? DateFormat('yyyy-MM-dd').format(record.nextDueDate!) : 'None';
-                  
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12.0),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                        child: Icon(
-                          record.recordType == 'Vaccine' ? Icons.vaccines : 
-                          record.recordType == 'Vet Visit' ? Icons.local_hospital :
-                          record.recordType == 'Deworming' ? Icons.medication : Icons.favorite,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                      title: Text('${record.recordType} - $dateStr'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (record.notes != null && record.notes!.isNotEmpty)
-                            Text(record.notes!),
-                          const SizedBox(height: 4),
-                          Text('Next Due: $nextDueStr', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                        ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        onPressed: () => _deleteHealthRecord(record.id, dog.id),
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _deleteHealthRecord(int recordId, int dogId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Record'),
-        content: const Text('Are you sure you want to delete this health record?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      final db = ref.read(databaseProvider);
-      await db.deleteHealthRecord(recordId);
-      ref.invalidate(healthRecordsProvider(dogId));
-    }
-  }
-
-  Widget _buildShowTab(BuildContext context, Dog dog) {
-    final showAsync = ref.watch(showRecordsProvider(dog.id));
-    
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Show & Title History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ElevatedButton.icon(
-                onPressed: () => context.push('/dog/${dog.id}/show/new'),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Show'),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: showAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Error: $e'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => ref.invalidate(showRecordsProvider(dog.id)),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
-            data: (records) {
-              if (records.isEmpty) {
-                return const Center(
-                  child: Text('No show records found.', style: TextStyle(color: Colors.grey)),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: records.length,
-                itemBuilder: (context, index) {
-                  final record = records[index];
-                  final dateStr = DateFormat('yyyy-MM-dd').format(record.date);
-                  
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12.0),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.amber.withValues(alpha: 0.2),
-                        child: const Icon(Icons.emoji_events, color: Colors.amber),
-                      ),
-                      title: Text(record.eventName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text('Date: $dateStr'),
-                          if (record.judge != null && record.judge!.isNotEmpty) Text('Judge: ${record.judge}'),
-                          if (record.placement != null && record.placement!.isNotEmpty) 
-                            Text('Placement: ${record.placement}', style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.secondaryColor)),
-                          if (record.titleAwarded != null && record.titleAwarded!.isNotEmpty) 
-                            Text('Title: ${record.titleAwarded}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
-                          if (record.notes != null && record.notes!.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text('Notes: ${record.notes}', style: const TextStyle(fontStyle: FontStyle.italic)),
-                          ],
-                        ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        onPressed: () => _deleteShowRecord(record.id, dog.id),
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _deleteShowRecord(int recordId, int dogId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Record'),
-        content: const Text('Are you sure you want to delete this show record?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      final db = ref.read(databaseProvider);
-      await db.deleteShowRecord(recordId);
-      ref.invalidate(showRecordsProvider(dogId));
-    }
   }
 }
 

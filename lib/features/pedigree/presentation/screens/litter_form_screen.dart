@@ -79,6 +79,9 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
           'id': puppy.id,
         });
       }
+      while (_puppyEntries.length < _puppiesBornAlive) {
+        _puppyEntries.add({'callName': '', 'sex': 'Male', 'microchip': ''});
+      }
     });
   }
 
@@ -513,6 +516,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
             ),
             SizedBox(height: padding * 0.5),
             TextFormField(
+              initialValue: index < _puppyEntries.length ? _puppyEntries[index]['callName'] as String? : '',
               decoration: InputDecoration(
                 labelText: 'Call Name',
                 border: const OutlineInputBorder(),
@@ -530,7 +534,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
             ),
             SizedBox(height: padding * 0.5),
             DropdownButtonFormField<String>(
-              initialValue: _puppyEntries[index]['sex'] as String,
+              initialValue: index < _puppyEntries.length ? _puppyEntries[index]['sex'] as String : 'Male',
               decoration: InputDecoration(
                 labelText: 'Sex',
                 border: const OutlineInputBorder(),
@@ -553,6 +557,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
             ),
             SizedBox(height: padding * 0.5),
             TextFormField(
+              initialValue: index < _puppyEntries.length ? _puppyEntries[index]['microchip'] as String? : '',
               decoration: InputDecoration(
                 labelText: 'Microchip Number',
                 border: const OutlineInputBorder(),

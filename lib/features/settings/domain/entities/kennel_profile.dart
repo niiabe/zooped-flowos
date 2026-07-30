@@ -2,7 +2,6 @@ class KennelProfile {
   final int id;
   final String kennelName;
   final String? breederName;
-  final String? contactInfo;
   final String? phone;
   final String? whatsapp;
   final String? email;
@@ -15,7 +14,6 @@ class KennelProfile {
     required this.id,
     required this.kennelName,
     this.breederName,
-    this.contactInfo, // Legacy
     this.phone,
     this.whatsapp,
     this.email,

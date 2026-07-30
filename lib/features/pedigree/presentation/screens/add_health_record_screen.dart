@@ -146,8 +146,8 @@ class _AddHealthRecordScreenState extends ConsumerState<AddHealthRecordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      final db = ref.read(databaseProvider);
-      final id = await db.addHealthRecord(HealthRecordsCompanion.insert(
+      final repo = ref.read(pedigreeRepositoryProvider);
+      final id = await repo.addHealthRecord(HealthRecordsCompanion.insert(
         dogId: widget.dogId,
         recordType: _recordType,
         date: _date,
@@ -176,7 +176,6 @@ class _AddHealthRecordScreenState extends ConsumerState<AddHealthRecordScreen> {
       }
 
       if (mounted) {
-        ref.invalidate(healthRecordsProvider(widget.dogId));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Health record saved successfully')),
         );

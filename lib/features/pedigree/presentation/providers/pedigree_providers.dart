@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/dog.dart' as domain;
 import '../../domain/entities/litter.dart' as domain_litter;
@@ -42,16 +43,20 @@ final dogLittersProvider = FutureProvider.family.autoDispose<List<domain_litter.
   return await repo.getLittersForDog(dogId);
 });
 
-// Photo Gallery Provider
-final dogGalleryProvider = FutureProvider.family.autoDispose<List<DogPhoto>, int>((ref, dogId) async {
+// Photo Gallery Provider — Stream for live updates
+final dogGalleryProvider = StreamProvider.family.autoDispose<List<DogPhoto>, int>((ref, dogId) {
   final db = ref.watch(databaseProvider);
-  return await db.getPhotosForDog(dogId);
+  return (db.select(db.dogPhotos)
+    ..where((p) => p.dogId.equals(dogId))
+    ..orderBy([(p) => drift.OrderingTerm.desc(p.dateAdded)])).watch();
 });
 
-// Health Records Provider
-final healthRecordsProvider = FutureProvider.family.autoDispose<List<HealthRecord>, int>((ref, dogId) async {
+// Health Records Provider — Stream for live updates
+final healthRecordsProvider = StreamProvider.family.autoDispose<List<HealthRecord>, int>((ref, dogId) {
   final db = ref.watch(databaseProvider);
-  return await db.getHealthRecordsForDog(dogId);
+  return (db.select(db.healthRecords)
+    ..where((h) => h.dogId.equals(dogId))
+    ..orderBy([(h) => drift.OrderingTerm.desc(h.date)])).watch();
 });
 
 final heatCyclesProvider = StreamProvider.family.autoDispose<List<HeatCycle>, int>((ref, dogId) {
@@ -59,10 +64,12 @@ final heatCyclesProvider = StreamProvider.family.autoDispose<List<HeatCycle>, in
   return db.watchHeatCycles(dogId);
 });
 
-// Show Records Provider
-final showRecordsProvider = FutureProvider.family.autoDispose<List<ShowRecord>, int>((ref, dogId) async {
+// Show Records Provider — Stream for live updates
+final showRecordsProvider = StreamProvider.family.autoDispose<List<ShowRecord>, int>((ref, dogId) {
   final db = ref.watch(databaseProvider);
-  return await db.getShowRecordsForDog(dogId);
+  return (db.select(db.showRecords)
+    ..where((s) => s.dogId.equals(dogId))
+    ..orderBy([(s) => drift.OrderingTerm.desc(s.date)])).watch();
 });
 
 // All Litters Provider

@@ -154,6 +154,7 @@ class _AddShowRecordScreenState extends ConsumerState<AddShowRecordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
+      final repo = ref.read(pedigreeRepositoryProvider);
       final db = ref.read(databaseProvider);
       await db.addShowRecord(ShowRecordsCompanion.insert(
         dogId: widget.dogId,
@@ -166,7 +167,6 @@ class _AddShowRecordScreenState extends ConsumerState<AddShowRecordScreen> {
       ));
 
       if (mounted) {
-        ref.invalidate(showRecordsProvider(widget.dogId));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Show record saved successfully')),
         );

@@ -16,7 +16,7 @@
 
 <p align="center">
   <b>Package:</b> <code>com.zooped.niiabe</code> &nbsp;|&nbsp;
-  <b>Version:</b> 1.9.8+24 &nbsp;|&nbsp;
+  <b>Version:</b> 1.10.0+26 &nbsp;|&nbsp;
   <b>License:</b> Private
 </p>
 
@@ -87,6 +87,7 @@ The app is distributed as split APKs to reduce download size. Your device will a
 | Navigation | go_router |
 | Database | Drift (over SQLite) |
 | PDF Generation | pdf + printing |
+| Charts | fl_chart |
 | Push Notifications | flutter_local_notifications |
 | Image Picker | image_picker |
 | URL Launcher | url_launcher |
@@ -233,3 +234,4 @@ See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
 ## 📄 License
 
 Private project — All rights reserved.
+

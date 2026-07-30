@@ -24,7 +24,6 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
   
   late TextEditingController _kennelNameController;
   late TextEditingController _breederNameController;
-  late TextEditingController _contactInfoController;
   late TextEditingController _phoneController;
   late TextEditingController _whatsappController;
   late TextEditingController _emailController;
@@ -61,7 +60,6 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
     super.initState();
     _kennelNameController = TextEditingController();
     _breederNameController = TextEditingController();
-    _contactInfoController = TextEditingController();
     _phoneController = TextEditingController();
     _whatsappController = TextEditingController();
     _emailController = TextEditingController();
@@ -73,7 +71,6 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
 
     _kennelNameController.text = profile.kennelName;
     _breederNameController.text = profile.breederName ?? '';
-    _contactInfoController.text = profile.contactInfo ?? '';
     _phoneController.text = profile.phone ?? '';
     _whatsappController.text = profile.whatsapp ?? '';
     _emailController.text = profile.email ?? '';
@@ -91,7 +88,6 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
   void dispose() {
     _kennelNameController.dispose();
     _breederNameController.dispose();
-    _contactInfoController.dispose();
     _phoneController.dispose();
     _whatsappController.dispose();
     _emailController.dispose();
@@ -361,16 +357,6 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
             ),
             keyboardType: TextInputType.emailAddress,
           ),
-          SizedBox(height: padding),
-          TextFormField(
-            controller: _contactInfoController,
-            decoration: const InputDecoration(
-              labelText: 'Other Contact Info / Address',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.location_on),
-            ),
-            maxLines: 3,
-          ),
         ],
       ),
     );
@@ -554,7 +540,6 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
         id: currentProfile.id,
         kennelName: _kennelNameController.text.trim(),
         breederName: _breederNameController.text.trim().isEmpty ? null : _breederNameController.text.trim(),
-        contactInfo: _contactInfoController.text.trim().isEmpty ? null : _contactInfoController.text.trim(),
         phone: _phoneController.text.trim(),
         whatsapp: _sameAsPhone ? _phoneController.text.trim() : (_whatsappController.text.trim().isEmpty ? null : _whatsappController.text.trim()),
         email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),

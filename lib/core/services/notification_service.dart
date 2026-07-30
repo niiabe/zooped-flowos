@@ -38,25 +38,33 @@ class NotificationService {
     // Don't schedule in the past
     if (tzDate.isBefore(tz.TZDateTime.now(tz.local))) return;
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      id: id,
-      title: title,
-      body: body,
-      scheduledDate: tzDate,
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'health_reminders',
-          'Health Reminders',
-          channelDescription: 'Reminders for dog health records like vaccines and deworming',
-          importance: Importance.max,
-          priority: Priority.high,
+    try {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: tzDate,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'health_reminders',
+            'Health Reminders',
+            channelDescription: 'Reminders for dog health records like vaccines and deworming',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
         ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    );
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } catch (e) {
+      debugPrint('Failed to schedule notification: $e');
+    }
   }
 
   Future<void> cancelNotification(int id) async {
-    await flutterLocalNotificationsPlugin.cancel(id: id);
+    try {
+      await flutterLocalNotificationsPlugin.cancel(id: id);
+    } catch (e) {
+      debugPrint('Failed to cancel notification: $e');
+    }
   }
 }

@@ -84,6 +84,16 @@ class HealthRecords extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+class LitterHealthRecords extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get litterId => integer().references(Litters, #id)();
+  TextColumn get recordType => text().withLength(min: 1, max: 50)();
+  DateTimeColumn get date => dateTime()();
+  DateTimeColumn get nextDueDate => dateTime().nullable()();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 class ShowRecords extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get dogId => integer().references(Dogs, #id)();
@@ -126,14 +136,14 @@ class Matings extends Table {
 
 
 @DriftDatabase(
-  tables: [KennelProfile, Dogs, Litters, DogPhotos, HealthRecords, ShowRecords, Transactions, HeatCycles, Matings],
+  tables: [KennelProfile, Dogs, Litters, DogPhotos, HealthRecords, ShowRecords, Transactions, HeatCycles, Matings, LitterHealthRecords],
   daos: [],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -190,6 +200,10 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('CREATE INDEX IF NOT EXISTS idx_heat_cycles_dog_id ON heat_cycles(dog_id)');
           await customStatement('CREATE INDEX IF NOT EXISTS idx_matings_sire_id ON matings(sire_id)');
           await customStatement('CREATE INDEX IF NOT EXISTS idx_matings_dam_id ON matings(dam_id)');
+        }
+        if (from < 10) {
+          await m.createTable(litterHealthRecords);
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_litter_health_records_litter_id ON litter_health_records(litter_id)');
         }
       },
       beforeOpen: (details) async {
