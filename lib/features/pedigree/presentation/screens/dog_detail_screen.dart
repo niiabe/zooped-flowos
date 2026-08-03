@@ -1,10 +1,16 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/delete_confirm_dialog.dart';
@@ -18,7 +24,7 @@ import 'dog_detail/photo_gallery.dart';
 import 'dog_detail/certificate_actions.dart';
 import 'dashboard_screen.dart';
 
-final _dogProvider = FutureProvider.family<Dog, int>((ref, dogId) async {
+final _dogProvider = FutureProvider.autoDispose.family<Dog, int>((ref, dogId) async {
   final repo = ref.watch(pedigreeRepositoryProvider);
   return await repo.getDogByIdWithPedigree(dogId);
 });
@@ -35,6 +41,7 @@ class DogDetailScreen extends ConsumerStatefulWidget {
 class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
   bool _generatingPdf = false;
   final GlobalKey _pedigreeExportKey = GlobalKey();
+  final GlobalKey _qrGlobalKey = GlobalKey();
   Dog? _dog;
 
   @override
@@ -254,52 +261,162 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
     final dog = _dog;
     if (dog == null) return;
 
-    final qrData =
-        'ZOOPED:${dog.id}|${dog.registeredName}|${dog.callName}|${dog.breed ?? "Unknown"}|${dog.sex}|${dog.microchipNumber ?? "N/A"}';
+    final deepLink = 'zooped://dog/${dog.id}';
+    final qrData = jsonEncode({
+      'type': 'ZOOPED',
+      'id': dog.id,
+      'registeredName': dog.registeredName,
+      'callName': dog.callName,
+      'breed': dog.breed,
+      'sex': dog.sex,
+      'microchipNumber': dog.microchipNumber,
+      'colorMarkings': dog.colorMarkings,
+      'dateOfBirth': dog.dateOfBirth?.toIso8601String(),
+      'registerType': dog.registerType,
+      'notes': dog.notes,
+    });
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Dog QR Code'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            QrImageView(
-              data: qrData,
-              version: QrVersions.auto,
-              size: 200.0,
-              backgroundColor: Colors.white,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              dog.registeredName,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${dog.breed ?? "Unknown"} • ${dog.sex}',
-              style: TextStyle(color: Colors.grey.shade600),
-              textAlign: TextAlign.center,
-            ),
-            if (dog.microchipNumber != null) ...[
-              const SizedBox(height: 4),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RepaintBoundary(
+                key: _qrGlobalKey,
+                child: QrImageView(
+                  data: qrData,
+                  version: QrVersions.auto,
+                  size: 200.0,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
-                'Microchip: ${dog.microchipNumber}',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                dog.registeredName,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 4),
+              Text(
+                '${dog.breed ?? "Unknown"} • ${dog.sex}',
+                style: TextStyle(color: Colors.grey.shade600),
+                textAlign: TextAlign.center,
+              ),
+              if (dog.microchipNumber != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Microchip: ${dog.microchipNumber}',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.link, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        deepLink,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
-          ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Close'),
           ),
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Share QR Code',
+            onPressed: () => _shareQrCode(ctx, qrData),
+          ),
+          IconButton(
+            icon: const Icon(Icons.save_alt),
+            tooltip: 'Save QR Code',
+            onPressed: () => _saveQrCode(ctx, qrData),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _shareQrCode(BuildContext context, String qrData) async {
+    try {
+      final boundary = _qrGlobalKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+
+      final buffer = byteData.buffer.asUint8List();
+
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/zooped_qr_${_dog!.id}.png');
+      await file.writeAsBytes(buffer);
+
+      await Share.shareXFiles([XFile(file.path)], text: 'QR Code for ${_dog!.registeredName}');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share QR code: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveQrCode(BuildContext context, String qrData) async {
+    try {
+      final boundary = _qrGlobalKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+
+      final buffer = byteData.buffer.asUint8List();
+
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/zooped_qr_${_dog!.id}.png');
+      await file.writeAsBytes(buffer);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('QR code saved to ${file.path}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save QR code: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -475,6 +592,63 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
           ),
         ),
 
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Quick Actions',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.secondaryColor,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickAction(
+                      icon: Icons.medical_services,
+                      label: 'Health',
+                      color: Colors.green,
+                      onTap: () => context.push('/dog/${dog.id}/health/new'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildQuickAction(
+                      icon: Icons.camera_alt,
+                      label: 'Photo',
+                      color: Colors.blue,
+                      onTap: () => _addPhoto(context, dog),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildQuickAction(
+                      icon: Icons.emoji_events,
+                      label: 'Show',
+                      color: Colors.orange,
+                      onTap: () => context.push('/dog/${dog.id}/show/new'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildQuickAction(
+                      icon: Icons.monitor_weight,
+                      label: 'Weight',
+                      color: Colors.purple,
+                      onTap: () => _logWeight(context, dog),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
         PhotoGallery(dog: dog),
         const SizedBox(height: 16.0),
       ],
@@ -571,6 +745,153 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
               color: badgeColor,
               fontSize: 13.0,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAction({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addPhoto(BuildContext context, Dog dog) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source != null && context.mounted) {
+      try {
+        final picker = ImagePicker();
+        final pickedFile = await picker.pickImage(source: source, imageQuality: 80);
+        if (pickedFile == null) return;
+
+        final appDir = await getApplicationDocumentsDirectory();
+        final fileName = 'dog_${dog.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
+
+        await ref.read(pedigreeRepositoryProvider).updateDog(
+          dog.copyWith(photoPath: savedImage.path),
+        );
+
+        ref.invalidate(_dogProvider(widget.dogId));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Photo added successfully')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to add photo: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  void _logWeight(BuildContext context, Dog dog) {
+    final weightController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log Weight'),
+        content: TextField(
+          controller: weightController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Weight (lbs)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final weight = double.tryParse(weightController.text);
+              if (weight == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter a valid weight')),
+                );
+                return;
+              }
+
+              try {
+                final repo = ref.read(pedigreeRepositoryProvider);
+                final updatedNotes = dog.notes != null
+                    ? '${dog.notes}\nWeight: ${weight}lbs on ${DateFormat('yyyy-MM-dd').format(DateTime.now())}'
+                    : 'Weight: ${weight}lbs on ${DateFormat('yyyy-MM-dd').format(DateTime.now())}';
+
+                await repo.updateDog(
+                  dog.copyWith(notes: updatedNotes),
+                );
+
+                ref.invalidate(_dogProvider(widget.dogId));
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Weight logged successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to log weight: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
           ),
         ],
       ),

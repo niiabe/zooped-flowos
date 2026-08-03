@@ -47,6 +47,51 @@ class AppearanceScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 32),
+          const Divider(),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Auto-Switch (Sunset/Sunrise)',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Switch(
+                value: themeState.scheduleEnabled,
+                onChanged: (value) => themeNotifier.setScheduleEnabled(value),
+              ),
+            ],
+          ),
+          if (themeState.scheduleEnabled) ...[
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.dark_mode),
+              title: const Text('Sunset (switch to Dark)'),
+              subtitle: Text(themeState.sunsetTime.format(context)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                final time = await showTimePicker(
+                  context: context,
+                  initialTime: themeState.sunsetTime,
+                );
+                if (time != null) themeNotifier.setSunsetTime(time);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.light_mode),
+              title: const Text('Sunrise (switch to Light)'),
+              subtitle: Text(themeState.sunriseTime.format(context)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                final time = await showTimePicker(
+                  context: context,
+                  initialTime: themeState.sunriseTime,
+                );
+                if (time != null) themeNotifier.setSunriseTime(time);
+              },
+            ),
+          ],
+          const SizedBox(height: 32),
           const Text(
             'Accent Color',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

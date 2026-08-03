@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/error/error_handler.dart';
 import '../providers/pedigree_providers.dart';
-import 'dashboard_screen.dart';
 
 class KennelStats {
   final int totalDogs;
@@ -79,6 +84,16 @@ class AnalyticsScreen extends ConsumerWidget {
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.secondaryColor,
         elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) => _handleExport(context, ref, value),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'csv', child: Text('Export CSV')),
+              const PopupMenuItem(value: 'pdf', child: Text('Export PDF')),
+            ],
+          ),
+        ],
       ),
       body: statsAsync.when(
         data: (stats) {
@@ -278,5 +293,101 @@ class AnalyticsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _handleExport(BuildContext context, WidgetRef ref, String type) {
+    final stats = ref.read(analyticsProvider).valueOrNull;
+    if (stats == null || stats.totalDogs == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No data to export')),
+      );
+      return;
+    }
+
+    if (type == 'csv') {
+      _exportCsv(context, stats);
+    } else {
+      _exportPdf(context, stats);
+    }
+  }
+
+  void _exportCsv(BuildContext context, KennelStats stats) async {
+    try {
+      final buffer = StringBuffer();
+      buffer.writeln('ZooPed Analytics Report');
+      buffer.writeln('Generated,${DateTime.now().toIso8601String()}');
+      buffer.writeln();
+      buffer.writeln('Summary');
+      buffer.writeln('Total Dogs,${stats.totalDogs}');
+      buffer.writeln('Males,${stats.totalMales}');
+      buffer.writeln('Females,${stats.totalFemales}');
+      buffer.writeln('Total Litters,${stats.totalLitters}');
+      buffer.writeln('Average Litter Size,${stats.averageLitterSize.toStringAsFixed(1)}');
+      buffer.writeln();
+      buffer.writeln('Breed Distribution');
+      buffer.writeln('Breed,Count');
+      for (final entry in stats.breedCounts.entries) {
+        buffer.writeln('${entry.key},${entry.value}');
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/zooped_analytics.csv');
+      await file.writeAsString(buffer.toString());
+
+      await Share.shareXFiles([XFile(file.path)], text: 'ZooPed Analytics Report');
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to export CSV: $e')),
+        );
+      }
+    }
+  }
+
+  void _exportPdf(BuildContext context, KennelStats stats) async {
+    try {
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          build: (context) => [
+            pw.Header(level: 0, child: pw.Text('ZooPed Analytics Report')),
+            pw.Paragraph(text: 'Generated: ${DateTime.now().toString().split('.').first}'),
+            pw.SizedBox(height: 20),
+            pw.Header(level: 1, child: pw.Text('Summary')),
+            pw.Table.fromTextArray(
+              headers: ['Metric', 'Value'],
+              data: [
+                ['Total Dogs', stats.totalDogs.toString()],
+                ['Males', stats.totalMales.toString()],
+                ['Females', stats.totalFemales.toString()],
+                ['Total Litters', stats.totalLitters.toString()],
+                ['Average Litter Size', stats.averageLitterSize.toStringAsFixed(1)],
+              ],
+            ),
+            pw.SizedBox(height: 20),
+            pw.Header(level: 1, child: pw.Text('Breed Distribution')),
+            pw.Table.fromTextArray(
+              headers: ['Breed', 'Count'],
+              data: stats.breedCounts.entries
+                  .map((e) => [e.key, e.value.toString()])
+                  .toList(),
+            ),
+          ],
+        ),
+      );
+
+      await Printing.layoutPdf(
+        onLayout: (format) => pdf.save(),
+        name: 'ZooPed Analytics Report',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to export PDF: $e')),
+        );
+      }
+    }
   }
 }

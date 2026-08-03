@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/utils/breed_presets.dart';
 import '../../../../core/error/error_handler.dart';
 import '../../../../core/services/file_storage_service.dart';
 import '../../domain/entities/kennel_profile.dart';
@@ -261,28 +262,100 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
   Widget _buildBreedingTab() {
     final padding = Responsive.padding(context);
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(padding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Primary breeds will be used to auto-complete fields when adding new dogs.',
-            style: TextStyle(color: Colors.grey),
+    return StatefulBuilder(
+      builder: (context, setModalState) {
+        final currentBreeds = _primaryBreedsController.text
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet();
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Select your primary breeds. These will appear as options when adding dogs.',
+                style: TextStyle(color: Colors.grey),
+              ),
+              SizedBox(height: padding),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Search breeds',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: currentBreeds.isNotEmpty
+                      ? Text(
+                          '${currentBreeds.length} selected',
+                          style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600),
+                        )
+                      : null,
+                ),
+                onChanged: (value) => setModalState(() {}),
+                buildCounter: (context, {required currentLength, required isFocused, required maxLength}) => null,
+              ),
+              SizedBox(height: padding),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: currentBreeds.map((breed) {
+                  return Chip(
+                    label: Text(breed),
+                    deleteIcon: const Icon(Icons.close, size: 18),
+                    onDeleted: () {
+                      setModalState(() {
+                        currentBreeds.remove(breed);
+                        _primaryBreedsController.text = currentBreeds.join(', ');
+                      });
+                    },
+                    backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+                  );
+                }).toList(),
+              ),
+              if (currentBreeds.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Divider(),
+              ],
+              SizedBox(height: padding),
+              Text(
+                'Default Dog Breeds',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.secondaryColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...BreedPresets.defaultBreeds.map((breed) {
+                final isSelected = currentBreeds.contains(breed);
+                return ListTile(
+                  dense: true,
+                  leading: Icon(
+                    isSelected ? Icons.check_circle : Icons.add_circle_outline,
+                    color: isSelected ? AppTheme.primaryColor : Colors.grey,
+                  ),
+                  title: Text(breed),
+                  trailing: isSelected
+                      ? Icon(Icons.remove_circle_outline, color: Colors.red.shade300)
+                      : null,
+                  onTap: () {
+                    setModalState(() {
+                      if (isSelected) {
+                        currentBreeds.remove(breed);
+                      } else {
+                        currentBreeds.add(breed);
+                      }
+                      _primaryBreedsController.text = currentBreeds.join(', ');
+                    });
+                  },
+                );
+              }),
+            ],
           ),
-          SizedBox(height: padding),
-          TextFormField(
-            controller: _primaryBreedsController,
-            decoration: const InputDecoration(
-              labelText: 'Primary Breeds (comma separated)',
-              hintText: 'e.g. French Bulldog, Poodle',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.pets),
-            ),
-            maxLines: 2,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

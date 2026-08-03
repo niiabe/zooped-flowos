@@ -10,7 +10,7 @@ import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import '../../../../../core/services/certificate_service.dart';
 import '../../../domain/entities/dog.dart';
 import '../../providers/shared_providers.dart';
-import '../../../../settings/presentation/providers/settings_providers.dart';
+
 
 class CertificateActions extends ConsumerStatefulWidget {
   final Dog dog;

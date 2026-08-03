@@ -5,6 +5,32 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0+28] - 2026-08-03
+
+### Added
+- **Breed Presets:** Default breed list with 100+ breeds, searchable and editable in Kennel Profile settings.
+- **Analytics Export:** Export kennel analytics to CSV or PDF with one tap from the Analytics screen.
+- **Dark Mode Scheduling:** Auto-switch between light and dark mode at custom sunset/sunrise times.
+- **Quick Actions:** Added Health, Photo, Show, and Weight quick-action buttons on dog detail screen.
+
+### Fixed
+- Removed unused variable in add_show_record_screen.dart
+- Removed unused import in certificate_actions.dart
+
+## [1.11.0+27] - 2026-08-03
+
+### Added
+- **QR Code Scanner:** New QR code scanner screen to scan dog QR codes and import dog information from other devices.
+- **Deep Linking:** Configured Android deep linking with `zooped://` scheme for QR code navigation.
+- **Enhanced QR Codes:** QR codes now include full dog information (color, DOB, register type, notes) and deep link URL.
+- **Share QR Code:** Added share button to QR code dialog for sharing via other apps.
+- **Save QR Code:** Added save button to QR code dialog for saving QR code image to device.
+- **Dashboard QR Scanner:** Added QR scanner button to dashboard app bar for quick access.
+- **Breed Presets:** Default breed list with 100+ breeds, searchable and editable in Kennel Profile settings.
+- **Analytics Export:** Export kennel analytics to CSV or PDF with one tap from the Analytics screen.
+- **Dark Mode Scheduling:** Auto-switch between light and dark mode at custom sunset/sunrise times.
+- **Quick Actions:** Added Health, Photo, Show, and Weight quick-action buttons on dog detail screen.
+
 ## [1.10.0+26] - 2026-07-30
 
 ### Added

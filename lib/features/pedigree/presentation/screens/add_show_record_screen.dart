@@ -154,7 +154,6 @@ class _AddShowRecordScreenState extends ConsumerState<AddShowRecordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      final repo = ref.read(pedigreeRepositoryProvider);
       final db = ref.read(databaseProvider);
       await db.addShowRecord(ShowRecordsCompanion.insert(
         dogId: widget.dogId,
