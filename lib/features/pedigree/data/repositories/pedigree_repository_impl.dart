@@ -252,6 +252,15 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
   }
 
   @override
+  Future<List<ShowRecord>> getDogShowRecords(int dogId) async {
+    try {
+      return await _database.getShowRecordsForDog(dogId);
+    } catch (e) {
+      throw DatabaseException('Failed to get show records: $e', e);
+    }
+  }
+
+  @override
   Future<void> deleteShowRecord(int id) async {
     try {
       await (_database.delete(_database.showRecords)..where((s) => s.id.equals(id))).go();
@@ -434,6 +443,38 @@ class PedigreeRepositoryImpl implements PedigreeRepository {
       await _database.copyHealthRecordsFromLitterToDog(litterId, newDogId);
     } catch (e) {
       throw DatabaseException('Failed to copy health records from litter: $e', e);
+    }
+  }
+
+  @override
+  Future<List<Mating>> getMatingsForDog(int dogId) async {
+    try {
+      return await _database.watchMatings(dogId).first;
+    } catch (e) {
+      throw DatabaseException('Failed to get matings for dog: $e', e);
+    }
+  }
+
+  @override
+  Future<void> addMating(int sireId, int damId, DateTime matingDate, {String? notes}) async {
+    try {
+      await _database.addMating(MatingsCompanion.insert(
+        sireId: sireId,
+        damId: damId,
+        matingDate: matingDate,
+        notes: notes != null ? Value(notes) : const Value.absent(),
+      ));
+    } catch (e) {
+      throw DatabaseException('Failed to add mating: $e', e);
+    }
+  }
+
+  @override
+  Future<void> deleteMating(int id) async {
+    try {
+      await _database.deleteMating(id);
+    } catch (e) {
+      throw DatabaseException('Failed to delete mating: $e', e);
     }
   }
 }

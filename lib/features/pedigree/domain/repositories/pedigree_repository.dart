@@ -1,6 +1,6 @@
 import '../entities/dog.dart';
 import '../entities/litter.dart';
-import '../../../../core/database/app_database.dart' show HealthRecordsCompanion, LitterHealthRecordsCompanion, HealthRecord, LitterHealthRecord;
+import '../../../../core/database/app_database.dart' show HealthRecordsCompanion, LitterHealthRecordsCompanion, HealthRecord, LitterHealthRecord, Mating, ShowRecord;
 
 abstract class PedigreeRepository {
   // Dog Data Contracts
@@ -39,6 +39,7 @@ abstract class PedigreeRepository {
   Future<void> updateHealthRecord(HealthRecord record);
 
   // Show Records
+  Future<List<ShowRecord>> getDogShowRecords(int dogId);
   Future<void> deleteShowRecord(int id);
 
   // Photo Gallery
@@ -63,4 +64,9 @@ abstract class PedigreeRepository {
   Future<List<HealthRecord>> getHealthRecordsForLitterPuppies(int litterId);
   Future<void> addHealthRecordForLitterPuppies(int litterId, String recordType, DateTime date, {DateTime? nextDueDate, String? notes});
   Future<void> copyHealthRecordsFromLitterToDog(int litterId, int newDogId);
+
+  // Matings
+  Future<List<Mating>> getMatingsForDog(int dogId);
+  Future<void> addMating(int sireId, int damId, DateTime matingDate, {String? notes});
+  Future<void> deleteMating(int id);
 }

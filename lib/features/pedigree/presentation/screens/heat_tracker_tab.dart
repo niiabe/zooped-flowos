@@ -72,14 +72,33 @@ class HeatTrackerTab extends ConsumerWidget {
                               trailing: IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.red),
                                 onPressed: () async {
-                                  try {
-                                    final repo = ref.read(pedigreeRepositoryProvider);
-                                    await repo.deleteHeatCycle(cycle.id);
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Error deleting heat cycle: $e')),
-                                      );
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete Heat Cycle'),
+                                      content: const Text('Are you sure you want to delete this heat cycle record?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirmed == true) {
+                                    try {
+                                      final repo = ref.read(pedigreeRepositoryProvider);
+                                      await repo.deleteHeatCycle(cycle.id);
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error deleting heat cycle: $e')),
+                                        );
+                                      }
                                     }
                                   }
                                 },

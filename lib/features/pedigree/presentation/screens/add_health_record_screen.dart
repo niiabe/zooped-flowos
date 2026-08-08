@@ -21,14 +21,24 @@ class AddHealthRecordScreen extends ConsumerStatefulWidget {
 class _AddHealthRecordScreenState extends ConsumerState<AddHealthRecordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notesController = TextEditingController();
+  final _dateController = TextEditingController();
+  final _nextDueDateController = TextEditingController();
 
   String _recordType = 'Vaccine';
   DateTime _date = DateTime.now();
   DateTime? _nextDueDate;
 
   @override
+  void initState() {
+    super.initState();
+    _dateController.text = DateFormat.yMMMd().format(_date);
+  }
+
+  @override
   void dispose() {
     _notesController.dispose();
+    _dateController.dispose();
+    _nextDueDateController.dispose();
     super.dispose();
   }
 
@@ -80,11 +90,14 @@ class _AddHealthRecordScreenState extends ConsumerState<AddHealthRecordScreen> {
                     firstDate: DateTime(2000),
                     lastDate: DateTime.now(),
                   );
-                  if (date != null) setState(() => _date = date);
+                  if (date != null) {
+                    setState(() {
+                      _date = date;
+                      _dateController.text = DateFormat.yMMMd().format(date);
+                    });
+                  }
                 },
-                controller: TextEditingController(
-                  text: DateFormat.yMMMd().format(_date),
-                ),
+                controller: _dateController,
               ),
               SizedBox(height: padding),
 
@@ -96,7 +109,10 @@ class _AddHealthRecordScreenState extends ConsumerState<AddHealthRecordScreen> {
                   suffixIcon: _nextDueDate != null 
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () => setState(() => _nextDueDate = null),
+                        onPressed: () => setState(() {
+                          _nextDueDate = null;
+                          _nextDueDateController.clear();
+                        }),
                       )
                     : const Icon(Icons.event),
                 ),
@@ -107,11 +123,14 @@ class _AddHealthRecordScreenState extends ConsumerState<AddHealthRecordScreen> {
                     firstDate: DateTime.now(),
                     lastDate: DateTime(2100),
                   );
-                  if (date != null) setState(() => _nextDueDate = date);
+                  if (date != null) {
+                    setState(() {
+                      _nextDueDate = date;
+                      _nextDueDateController.text = DateFormat.yMMMd().format(date);
+                    });
+                  }
                 },
-                controller: TextEditingController(
-                  text: _nextDueDate != null ? DateFormat.yMMMd().format(_nextDueDate!) : '',
-                ),
+                controller: _nextDueDateController,
               ),
               SizedBox(height: padding),
 

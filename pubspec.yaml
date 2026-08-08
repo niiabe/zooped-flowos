@@ -2,7 +2,7 @@ name: zooped
 description: "Zoo Pedigree - Dog Pedigree Tracking App"
 publish_to: 'none'
 
-version: 1.12.0+28
+version: 1.13.0+29
 
 environment:
   sdk: ^3.12.0

@@ -1,3 +1,2 @@
--Why cant I delete an added litter from either of the parents screen,or when I view litter ?
-- when heal record is added it should be saved to the litter .and when add to record to all puppies is tapped then it pulls to added dog from the litter .
-- why did you not divide the apps into the varios versions and build before pushing to GitHub but you instead pushed the big apk which we set rules that is should not be 
+# All issues have been resolved.
+# See CHANGELOG.md for version history.

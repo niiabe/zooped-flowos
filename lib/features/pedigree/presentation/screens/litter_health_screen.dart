@@ -22,11 +22,19 @@ class LitterHealthScreen extends ConsumerStatefulWidget {
 class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
   final _recordTypeController = TextEditingController();
   final _notesController = TextEditingController();
+  final _dateController = TextEditingController();
+  final _nextDueDateController = TextEditingController();
   String _recordType = 'Vaccine';
   DateTime _date = DateTime.now();
   DateTime? _nextDueDate;
   bool _generatingPdf = false;
   bool _propagateToPuppies = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _dateController.text = DateFormat.yMMMd().format(_date);
+  }
 
   Future<void> _generatePdf(WidgetRef ref) async {
     setState(() => _generatingPdf = true);
@@ -69,6 +77,8 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
   void dispose() {
     _recordTypeController.dispose();
     _notesController.dispose();
+    _dateController.dispose();
+    _nextDueDateController.dispose();
     super.dispose();
   }
 
@@ -139,11 +149,14 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
                   firstDate: DateTime(2000),
                   lastDate: DateTime.now(),
                 );
-                if (date != null) setState(() => _date = date);
+                if (date != null) {
+                  setState(() {
+                    _date = date;
+                    _dateController.text = DateFormat.yMMMd().format(date);
+                  });
+                }
               },
-              controller: TextEditingController(
-                text: DateFormat.yMMMd().format(_date),
-              ),
+              controller: _dateController,
             ),
             SizedBox(height: padding),
 
@@ -155,7 +168,10 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
                 suffixIcon: _nextDueDate != null
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () => setState(() => _nextDueDate = null),
+                        onPressed: () => setState(() {
+                          _nextDueDate = null;
+                          _nextDueDateController.clear();
+                        }),
                       )
                     : const Icon(Icons.event),
               ),
@@ -166,11 +182,14 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
                   firstDate: DateTime.now(),
                   lastDate: DateTime(2100),
                 );
-                if (date != null) setState(() => _nextDueDate = date);
+                if (date != null) {
+                  setState(() {
+                    _nextDueDate = date;
+                    _nextDueDateController.text = DateFormat.yMMMd().format(date);
+                  });
+                }
               },
-              controller: TextEditingController(
-                text: _nextDueDate != null ? DateFormat.yMMMd().format(_nextDueDate!) : '',
-              ),
+              controller: _nextDueDateController,
             ),
             SizedBox(height: padding),
 
@@ -210,7 +229,7 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
             SizedBox(height: padding * 2),
 
             Text(
-              'Existing Records',
+              'Existing Litter Records',
               style: TextStyle(
                 fontSize: isTablet ? 20.0 : 18.0,
                 fontWeight: FontWeight.bold,
@@ -275,6 +294,101 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
                 );
               },
             ),
+
+            SizedBox(height: padding * 2),
+
+            Text(
+              'Puppy Health Records',
+              style: TextStyle(
+                fontSize: isTablet ? 20.0 : 18.0,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.secondaryColor,
+              ),
+            ),
+            SizedBox(height: padding),
+
+            puppiesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text('Error: $e'),
+              data: (puppies) {
+                if (puppies.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                final puppyRecordsAsync = ref.watch(_litterPuppiesHealthRecordsProvider(widget.litterId));
+                return puppyRecordsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Text('Error: $e'),
+                  data: (puppyRecords) {
+                    if (puppyRecords.isEmpty) {
+                      return Text(
+                        'No propagated health records yet. Use "Apply to all puppies" when adding a record.',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      );
+                    }
+                    final puppyMap = {for (final p in puppies) p.id: p};
+                    final grouped = <int, List<HealthRecord>>{};
+                    for (final record in puppyRecords) {
+                      grouped.putIfAbsent(record.dogId, () => []).add(record);
+                    }
+                    return Column(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(bottom: padding * 0.5),
+                          child: Text(
+                            '${puppyRecords.length} record${puppyRecords.length == 1 ? '' : 's'} across ${grouped.length} puppy${grouped.length == 1 ? '' : 'ies'}',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          ),
+                        ),
+                        ...grouped.entries.map((entry) {
+                          final puppy = puppyMap[entry.key];
+                          final records = entry.value;
+                          return Card(
+                            margin: EdgeInsets.only(bottom: padding * 0.5),
+                            child: ExpansionTile(
+                              leading: CircleAvatar(
+                                backgroundColor: AppTheme.secondaryColor.withValues(alpha: 0.1),
+                                child: Text(
+                                  '${records.length}',
+                                  style: TextStyle(color: AppTheme.secondaryColor, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              title: Text(puppy?.callName ?? 'Unknown Puppy'),
+                              subtitle: Text(
+                                '${records.length} record${records.length == 1 ? '' : 's'}',
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                              ),
+                              children: records.map((record) => ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                leading: Icon(
+                                  _getRecordIcon(record.recordType),
+                                  color: _getRecordColor(record.recordType),
+                                  size: 20,
+                                ),
+                                title: Text(record.recordType, style: const TextStyle(fontSize: 14)),
+                                subtitle: Text(
+                                  '${DateFormat('yyyy-MM-dd').format(record.date)}${record.notes != null && record.notes!.isNotEmpty ? ' - ${record.notes}' : ''}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                trailing: record.nextDueDate != null
+                                    ? Chip(
+                                        label: Text(
+                                          'Due: ${DateFormat('MM/dd').format(record.nextDueDate!)}',
+                                          style: const TextStyle(fontSize: 10),
+                                        ),
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
+                                      )
+                                    : null,
+                              )).toList(),
+                            ),
+                          );
+                        }),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -327,6 +441,9 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
 
       if (mounted) {
         ref.invalidate(_litterHealthRecordsProvider(widget.litterId));
+        if (_propagateToPuppies) {
+          ref.invalidate(_litterPuppiesHealthRecordsProvider(widget.litterId));
+        }
         final message = _propagateToPuppies
             ? '$_recordType added to litter and all puppies'
             : '$_recordType added to litter records';
@@ -337,6 +454,8 @@ class _LitterHealthScreenState extends ConsumerState<LitterHealthScreen> {
         setState(() {
           _nextDueDate = null;
           _date = DateTime.now();
+          _dateController.text = DateFormat.yMMMd().format(DateTime.now());
+          _nextDueDateController.clear();
         });
       }
     } on SqliteException catch (e) {
@@ -363,4 +482,9 @@ final _litterPuppiesProvider = FutureProvider.family.autoDispose<List<Dog>, int>
 final _litterHealthRecordsProvider = FutureProvider.family.autoDispose<List<LitterHealthRecord>, int>((ref, litterId) async {
   final repo = ref.watch(pedigreeRepositoryProvider);
   return await repo.getLitterHealthRecords(litterId);
+});
+
+final _litterPuppiesHealthRecordsProvider = FutureProvider.family.autoDispose<List<HealthRecord>, int>((ref, litterId) async {
+  final repo = ref.watch(pedigreeRepositoryProvider);
+  return await repo.getHealthRecordsForLitterPuppies(litterId);
 });

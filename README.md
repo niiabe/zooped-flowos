@@ -16,7 +16,7 @@
 
 <p align="center">
   <b>Package:</b> <code>com.zooped.niiabe</code> &nbsp;|&nbsp;
-  <b>Version:</b> 1.10.0+26 &nbsp;|&nbsp;
+  <b>Version:</b> 1.13.0+29 &nbsp;|&nbsp;
   <b>License:</b> Private
 </p>
 
@@ -54,10 +54,12 @@ The app is distributed as split APKs to reduce download size. Your device will a
 - **Dog Photo Gallery** — Multiple photos per dog with captions and date ordering.
 - **Interactive 3-Generation Pedigree Tree** — Zoomable/pannable `InteractiveViewer` canvas displaying sire/dam lineage with tap-to-navigate to ancestors.
 - **3-Generation PDF Export** — Generate professional A4 landscape pedigree certificates for printing or sharing.
+- **Dog Profile PDF Export** — Generate comprehensive dog profile reports with health records, show history, and notes.
 - **Puppy Contract PDF** — Generate a Puppy Bill of Sale & Contract for buyers.
 - **Litter Tracking** — Record matings, whelping dates, and auto-create puppy profiles with inherited parentage.
-- **Health Records** — Track vaccines, deworming, and vet visits with push notification reminders for upcoming due dates.
-- **Show Records** — Log event names, dates, judges, placements, and titles awarded.
+- **Health Records** — Track vaccines, deworming, and vet visits with push notification reminders and search/filter.
+- **Show Records** — Log event names, dates, judges, placements, and titles awarded with search capability.
+- **Pregnancy Tracker** — Track mating history with expected whelp dates, pregnancy progress, and whelping status.
 - **Mating Records** — Track sire/dam pairs with dates, used for whelping predictions.
 - **Heat Tracker** — Log and monitor female heat cycles with upcoming whelping alerts.
 - **Upcoming Agenda** — Combined view of predicted whelpings and next heat cycles, sorted chronologically.
@@ -67,7 +69,7 @@ The app is distributed as split APKs to reduce download size. Your device will a
 - **Custom Kennel Branding** — Upload kennel logo and configure breeder profile (logo-driven theme).
 - **Cloud & Local Backup System** — Export full `.zip` backups (Database + Media) directly to Google Drive or local storage, and seamlessly restore them to any device.
 - **Dynamic Theming** — Switch between Dark/Light/System modes and multiple accent colors.
-- **Dashboard Search & Filter** — Search by name or microchip, filter by sex, sort by name/recent/age.
+- **Dashboard Search & Filter** — Search by name or microchip, filter by sex, sort by name/recent/age with pull-to-refresh.
 - **In-App Updates** — Checks GitHub Releases for new versions, downloads the signed APK, and installs it directly from the app.
 - **Offline-First** — All data stored locally using SQLite via Drift.
 

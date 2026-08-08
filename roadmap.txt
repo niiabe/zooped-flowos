@@ -1,23 +1,26 @@
 ZooPed Feature Roadmap
-=====================
+======================
 
-Quick Wins (Easy Implementation)
----------------------------------
-- Add a default breed preset list so new users don't have to manually enter breeds in Kennel Profile
-- Add export to CSV/PDF for Analytics screen
-- Add dark mode scheduling (auto-switch at sunset/sunrise)
-- Add "Share QR Code" option to save/share the generated QR code image
-- Add quick-action buttons on dog detail screen (e.g., "Log Health Record", "Add Photo")
+Completed (v1.12.0)
+--------------------
+✅ Add a default breed preset list so new users don't have to manually enter breeds in Kennel Profile
+✅ Add export to CSV/PDF for Analytics screen
+✅ Add dark mode scheduling (auto-switch at sunset/sunrise)
+✅ Add "Share QR Code" option to save/share the generated QR code image
+✅ Add quick-action buttons on dog detail screen (Log Health Record, Add Photo, etc.)
+✅ Litter health records with batch propagation to all puppies
+✅ Litter deletion from parent screens and litter view
+✅ Split APK builds (instead of single monolithic APK)
+✅ Add search/filter in health records and show records
+✅ Add data export for individual dog records (PDF profile)
+✅ Add pregnancy tracker with mating history and auto-suggested birth dates
 
-Medium Effort
---------------
-- Generalize database tables (rename dogs -> animals, kennel_profile -> farm_profile) for full data-level generalization
+Medium Effort (Remaining)
+--------------------------
 - Add multi-kennel support (switch between different kennels/profiles)
 - Add veterinary appointment scheduling with calendar integration
 - Add litter weight tracking over time with growth charts
 - Add photo captions and bulk photo import
-- Add search/filter in health records and show records
-- Add data export for individual dog records (PDF profile)
 - Add pedigree comparison tool (compare two dogs side by side)
 
 Bigger Features

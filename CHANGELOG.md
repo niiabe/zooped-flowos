@@ -5,6 +5,30 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0+29] - 2026-08-08
+
+### Added
+- **Health Records Search & Filter:** Added search bar and record type dropdown filter to health records tab for quick lookup.
+- **Show Records Search:** Added search bar to show records tab filtering by event name, judge, placement, and title.
+- **Dog Profile PDF Export:** Generate and share a comprehensive PDF report with dog identity, health records, show records, and notes.
+- **Pregnancy Tracker:** New tab for female dogs showing mating history, expected whelp dates (mating + 63 days), pregnancy progress bars, and whelping status indicators.
+- **Litter List Search:** Added search bar to litter list screen filtering by sire, dam, or notes.
+- **Pull-to-Refresh:** Added pull-to-refresh gesture on dashboard dog list.
+- **Camera Photo Option:** Add/Edit dog screens now offer both Camera and Gallery options for photo selection.
+- **Heat Cycle Delete Confirmation:** Added confirmation dialog before deleting heat cycles.
+- **Missing Tooltips:** Added tooltips to Edit, Delete, Settings, and Add buttons throughout the app.
+
+### Fixed
+- **Memory Leaks:** Fixed inline TextEditingController creation in add_health_record, add_show_record, and litter_health screens that caused memory leaks.
+- **N+1 Query:** Fixed pregnancy tab calling getAllLitters() inside a loop (now called once before loop).
+- **Breed Search:** Fixed breed preset search in Kennel Profile that was not filtering the list.
+- **Deprecated API:** Fixed inconsistent withOpacity() usage to use withValues(alpha:) for Flutter compatibility.
+
+### Changed
+- **Skeleton Loader:** Dashboard now uses existing SkeletonLoader widget instead of inline shimmer implementation.
+- **Issues Cleanup:** Cleared resolved issues from Issues_and_recommendations.txt.
+- **Roadmap Updated:** Updated roadmap.txt marking completed features.
+
 ## [1.12.0+28] - 2026-08-03
 
 ### Added

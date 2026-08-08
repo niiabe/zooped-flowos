@@ -259,6 +259,8 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
     );
   }
 
+  String _breedSearchQuery = '';
+
   Widget _buildBreedingTab() {
     final padding = Responsive.padding(context);
 
@@ -269,6 +271,10 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
             .map((e) => e.trim())
             .where((e) => e.isNotEmpty)
             .toSet();
+
+        final filteredBreeds = BreedPresets.search(_breedSearchQuery)
+            .where((b) => !currentBreeds.contains(b))
+            .toList();
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(padding),
@@ -292,29 +298,38 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
                         )
                       : null,
                 ),
-                onChanged: (value) => setModalState(() {}),
+                onChanged: (value) => setModalState(() => _breedSearchQuery = value),
                 buildCounter: (context, {required currentLength, required isFocused, required maxLength}) => null,
               ),
               SizedBox(height: padding),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: currentBreeds.map((breed) {
-                  return Chip(
-                    label: Text(breed),
-                    deleteIcon: const Icon(Icons.close, size: 18),
-                    onDeleted: () {
-                      setModalState(() {
-                        currentBreeds.remove(breed);
-                        _primaryBreedsController.text = currentBreeds.join(', ');
-                      });
-                    },
-                    backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                    side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
-                  );
-                }).toList(),
-              ),
               if (currentBreeds.isNotEmpty) ...[
+                Text(
+                  'Selected Breeds',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.secondaryColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: currentBreeds.map((breed) {
+                    return Chip(
+                      label: Text(breed),
+                      deleteIcon: const Icon(Icons.close, size: 18),
+                      onDeleted: () {
+                        setModalState(() {
+                          currentBreeds.remove(breed);
+                          _primaryBreedsController.text = currentBreeds.join(', ');
+                        });
+                      },
+                      backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+                    );
+                  }).toList(),
+                ),
                 const SizedBox(height: 16),
                 const Divider(),
               ],
@@ -328,30 +343,30 @@ class _KennelProfileScreenState extends ConsumerState<KennelProfileScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              ...BreedPresets.defaultBreeds.map((breed) {
-                final isSelected = currentBreeds.contains(breed);
-                return ListTile(
-                  dense: true,
-                  leading: Icon(
-                    isSelected ? Icons.check_circle : Icons.add_circle_outline,
-                    color: isSelected ? AppTheme.primaryColor : Colors.grey,
+              if (filteredBreeds.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Text(
+                    _breedSearchQuery.isEmpty
+                        ? 'All breeds selected'
+                        : 'No breeds match "$_breedSearchQuery"',
+                    style: TextStyle(color: Colors.grey.shade600),
                   ),
-                  title: Text(breed),
-                  trailing: isSelected
-                      ? Icon(Icons.remove_circle_outline, color: Colors.red.shade300)
-                      : null,
-                  onTap: () {
-                    setModalState(() {
-                      if (isSelected) {
-                        currentBreeds.remove(breed);
-                      } else {
+                )
+              else
+                ...filteredBreeds.map((breed) {
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.add_circle_outline, color: Colors.grey),
+                    title: Text(breed),
+                    onTap: () {
+                      setModalState(() {
                         currentBreeds.add(breed);
-                      }
-                      _primaryBreedsController.text = currentBreeds.join(', ');
-                    });
-                  },
-                );
-              }),
+                        _primaryBreedsController.text = currentBreeds.join(', ');
+                      });
+                    },
+                  );
+                }),
             ],
           ),
         );

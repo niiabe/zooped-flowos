@@ -14,12 +14,15 @@ import 'package:path_provider/path_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/delete_confirm_dialog.dart';
+import '../../../../core/services/dog_profile_report_service.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/dog.dart';
 import '../providers/pedigree_providers.dart';
 import '../widgets/pedigree_canvas.dart';
 import 'dog_detail/health_tab.dart';
 import 'dog_detail/shows_tab.dart';
 import 'dog_detail/offspring_tab.dart';
+import 'dog_detail/pregnancy_tab.dart';
 import 'dog_detail/photo_gallery.dart';
 import 'dog_detail/certificate_actions.dart';
 import 'dashboard_screen.dart';
@@ -82,11 +85,20 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
             onPressed: _dog != null ? () => _showQrCode(context) : null,
           ),
           IconButton(
+            icon: _generatingPdf
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.picture_as_pdf),
+            tooltip: 'Export Dog Profile PDF',
+            onPressed: (_dog != null && !_generatingPdf) ? () => _generateDogProfilePdf(context) : null,
+          ),
+          IconButton(
             icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit Dog',
             onPressed: () => context.push('/dog/${widget.dogId}/edit'),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete Dog',
             onPressed: _dog != null ? () => _confirmDelete(context) : null,
           ),
         ],
@@ -109,16 +121,19 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
           ),
         ),
         data: (dog) {
-          const tabBar = TabBar(
+          final isFemale = dog.sex == 'Female';
+          
+          final tabBar = TabBar(
             isScrollable: true,
             labelColor: AppTheme.primaryColor,
             unselectedLabelColor: Colors.grey,
             indicatorColor: AppTheme.primaryColor,
             tabs: [
-              Tab(text: 'Pedigree Map'),
-              Tab(text: 'Health Records'),
-              Tab(text: 'Shows & Titles'),
-              Tab(text: 'Litters & Offspring'),
+              const Tab(text: 'Pedigree Map'),
+              const Tab(text: 'Health Records'),
+              const Tab(text: 'Shows & Titles'),
+              const Tab(text: 'Litters & Offspring'),
+              if (isFemale) const Tab(text: 'Pregnancy'),
             ],
           );
 
@@ -175,12 +190,13 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
               HealthTab(dog: dog),
               ShowsTab(dog: dog),
               OffspringTab(dog: dog),
+              if (isFemale) PregnancyTab(dog: dog),
             ],
           );
 
           if (isTablet) {
             return DefaultTabController(
-              length: 4,
+              length: isFemale ? 5 : 4,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -214,7 +230,7 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
           }
 
           return DefaultTabController(
-            length: 4,
+            length: isFemale ? 5 : 4,
             child: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
@@ -416,6 +432,45 @@ class _DogDetailScreenState extends ConsumerState<DogDetailScreen> {
           SnackBar(content: Text('Failed to save QR code: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _generateDogProfilePdf(BuildContext context) async {
+    final dog = _dog;
+    if (dog == null) return;
+
+    setState(() => _generatingPdf = true);
+    try {
+      final repo = ref.read(pedigreeRepositoryProvider);
+      final settingsRepo = ref.read(settingsRepositoryProvider);
+      
+      final healthRecords = await repo.getDogHealthRecords(dog.id);
+      final showRecords = await repo.getDogShowRecords(dog.id);
+      final profile = await settingsRepo.getKennelProfile();
+
+      final payload = DogProfileReportPayload(
+        kennelProfile: profile,
+        dog: dog,
+        healthRecords: healthRecords,
+        showRecords: showRecords,
+      );
+
+      final pdfBytes = await DogProfileReportService.generateReport(payload);
+      await DogProfileReportService.sharePdf(pdfBytes, dog.registeredName);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Dog profile PDF generated')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating PDF: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _generatingPdf = false);
     }
   }
 

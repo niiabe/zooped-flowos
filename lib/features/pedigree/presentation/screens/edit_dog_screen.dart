@@ -179,13 +179,7 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
                   SizedBox(height: padding),
 
                   GestureDetector(
-                    onTap: () async {
-                      final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
-                      if (picked != null) {
-                        final permanentPath = await FileStorageService.saveImagePermanently(picked.path);
-                        setState(() => _photoPath = permanentPath);
-                      }
-                    },
+                    onTap: () => _showImagePickerOptions(context),
                     child: Container(
                       width: double.infinity,
                       height: 120,
@@ -466,6 +460,43 @@ class _EditDogScreenState extends ConsumerState<EditDogScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _showImagePickerOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                final picked = await _imagePicker.pickImage(source: ImageSource.camera);
+                if (picked != null) {
+                  final permanentPath = await FileStorageService.saveImagePermanently(picked.path);
+                  setState(() => _photoPath = permanentPath);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () async {
+                Navigator.pop(context);
+                final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
+                if (picked != null) {
+                  final permanentPath = await FileStorageService.saveImagePermanently(picked.path);
+                  setState(() => _photoPath = permanentPath);
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

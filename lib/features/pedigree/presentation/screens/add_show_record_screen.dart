@@ -24,8 +24,15 @@ class _AddShowRecordScreenState extends ConsumerState<AddShowRecordScreen> {
   final _placementController = TextEditingController();
   final _titleController = TextEditingController();
   final _notesController = TextEditingController();
+  final _dateController = TextEditingController();
 
   DateTime _date = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _dateController.text = DateFormat.yMMMd().format(_date);
+  }
 
   @override
   void dispose() {
@@ -34,6 +41,7 @@ class _AddShowRecordScreenState extends ConsumerState<AddShowRecordScreen> {
     _placementController.dispose();
     _titleController.dispose();
     _notesController.dispose();
+    _dateController.dispose();
     super.dispose();
   }
 
@@ -78,11 +86,14 @@ class _AddShowRecordScreenState extends ConsumerState<AddShowRecordScreen> {
                     firstDate: DateTime(2000),
                     lastDate: DateTime.now(),
                   );
-                  if (date != null) setState(() => _date = date);
+                  if (date != null) {
+                    setState(() {
+                      _date = date;
+                      _dateController.text = DateFormat.yMMMd().format(date);
+                    });
+                  }
                 },
-                controller: TextEditingController(
-                  text: DateFormat.yMMMd().format(_date),
-                ),
+                controller: _dateController,
               ),
               SizedBox(height: padding),
 

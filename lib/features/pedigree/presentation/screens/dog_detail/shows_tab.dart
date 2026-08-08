@@ -7,14 +7,21 @@ import '../../../../../core/widgets/delete_confirm_dialog.dart';
 import '../../../domain/entities/dog.dart';
 import '../../providers/pedigree_providers.dart';
 
-class ShowsTab extends ConsumerWidget {
+class ShowsTab extends ConsumerStatefulWidget {
   final Dog dog;
 
   const ShowsTab({super.key, required this.dog});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final showAsync = ref.watch(showRecordsProvider(dog.id));
+  ConsumerState<ShowsTab> createState() => _ShowsTabState();
+}
+
+class _ShowsTabState extends ConsumerState<ShowsTab> {
+  String _searchQuery = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final showAsync = ref.watch(showRecordsProvider(widget.dog.id));
 
     return Column(
       children: [
@@ -26,13 +33,33 @@ class ShowsTab extends ConsumerWidget {
               const Text('Show & Title History',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ElevatedButton.icon(
-                onPressed: () => context.push('/dog/${dog.id}/show/new'),
+                onPressed: () => context.push('/dog/${widget.dog.id}/show/new'),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add Show'),
               ),
             ],
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search by event, judge, placement, title...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () => setState(() => _searchQuery = ''),
+                    )
+                  : null,
+            ),
+            onChanged: (value) => setState(() => _searchQuery = value),
+          ),
+        ),
+        const SizedBox(height: 8),
         Expanded(
           child: showAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -43,23 +70,40 @@ class ShowsTab extends ConsumerWidget {
                   Text('Error: $e'),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => ref.invalidate(showRecordsProvider(dog.id)),
+                    onPressed: () => ref.invalidate(showRecordsProvider(widget.dog.id)),
                     child: const Text('Retry'),
                   ),
                 ],
               ),
             ),
             data: (records) {
+              final filtered = records.where((r) {
+                if (_searchQuery.isEmpty) return true;
+                final q = _searchQuery.toLowerCase();
+                return r.eventName.toLowerCase().contains(q) ||
+                    (r.judge?.toLowerCase().contains(q) ?? false) ||
+                    (r.placement?.toLowerCase().contains(q) ?? false) ||
+                    (r.titleAwarded?.toLowerCase().contains(q) ?? false) ||
+                    (r.notes?.toLowerCase().contains(q) ?? false);
+              }).toList();
+
               if (records.isEmpty) {
                 return const Center(
                   child: Text('No show records found.', style: TextStyle(color: Colors.grey)),
                 );
               }
+
+              if (filtered.isEmpty) {
+                return const Center(
+                  child: Text('No records match your search.', style: TextStyle(color: Colors.grey)),
+                );
+              }
+
               return ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: records.length,
+                itemCount: filtered.length,
                 itemBuilder: (context, index) {
-                  final record = records[index];
+                  final record = filtered[index];
                   final dateStr = DateFormat('yyyy-MM-dd').format(record.date);
 
                   return Card(
@@ -97,7 +141,7 @@ class ShowsTab extends ConsumerWidget {
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        onPressed: () => _deleteShowRecord(context, ref, record.id, dog.id),
+                        onPressed: () => _deleteShowRecord(context, ref, record.id, widget.dog.id),
                       ),
                     ),
                   );

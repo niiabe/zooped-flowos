@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/error/error_handler.dart';
+import '../../../../core/widgets/skeleton_loader.dart';
 import '../../domain/entities/dog.dart';
 import '../providers/pedigree_providers.dart';
 import '../providers/shared_providers.dart';
@@ -97,6 +97,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
             onPressed: () => context.push('/settings'),
           ),
         ],
@@ -146,33 +147,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           _buildActiveFilterChips(),
           Expanded(
             child: dogsAsync.when(
-              loading: () => ListView.builder(
-                padding: EdgeInsets.all(padding),
-                itemCount: 5,
-                itemBuilder: (context, index) {
-                  return Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Card(
-                      margin: EdgeInsets.only(bottom: padding),
-                      child: ListTile(
-                        leading: const CircleAvatar(radius: 24),
-                        title: Container(
-                          height: 16,
-                          width: double.infinity,
-                          color: Colors.white,
-                        ),
-                        subtitle: Container(
-                          height: 12,
-                          width: 100,
-                          color: Colors.white,
-                          margin: const EdgeInsets.only(top: 8),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+              loading: () => const SkeletonLoader(itemCount: 5),
               error: (e, _) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -258,18 +233,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   );
                 }
 
-                return ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: padding * 0.5),
-                  itemCount: dogs.length,
-                  itemBuilder: (context, index) {
-                    final dog = dogs[index];
-                    return RepaintBoundary(
-                      child: DogListItem(
-                        dog: dog,
-                        onTap: () => context.push('/dog/${dog.id}'),
-                      ).animate().fadeIn(delay: (index > 15 ? 0 : 50 * index).ms).slideX(begin: 0.1, end: 0.0),
-                    );
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(dogsProvider);
+                    await ref.read(dogsProvider.future);
                   },
+                  child: ListView.builder(
+                    padding: EdgeInsets.symmetric(horizontal: padding * 0.5),
+                    itemCount: dogs.length,
+                    itemBuilder: (context, index) {
+                      final dog = dogs[index];
+                      return RepaintBoundary(
+                        child: DogListItem(
+                          dog: dog,
+                          onTap: () => context.push('/dog/${dog.id}'),
+                        ).animate().fadeIn(delay: (index > 15 ? 0 : 50 * index).ms).slideX(begin: 0.1, end: 0.0),
+                      );
+                    },
+                  ),
                 );
               },
             ),
@@ -280,6 +261,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         onPressed: () {
           _showAddOptions(context);
         },
+        tooltip: 'Add New',
         icon: const Icon(Icons.add),
         label: const Text('Add'),
       ),
