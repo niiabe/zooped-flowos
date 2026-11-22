@@ -88,6 +88,11 @@ class OffspringTab extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton.icon(
+                        onPressed: () => context.push('/litter/${litter.id}/edit'),
+                        icon: const Icon(Icons.edit, size: 20),
+                        label: const Text('Edit Litter'),
+                      ),
+                      TextButton.icon(
                         onPressed: () => _deleteLitter(context, ref, litter.id, dog.id),
                         icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                         label: const Text('Delete Litter',

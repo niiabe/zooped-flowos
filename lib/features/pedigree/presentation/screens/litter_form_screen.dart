@@ -13,8 +13,17 @@ import 'dashboard_screen.dart';
 
 class LitterFormScreen extends ConsumerStatefulWidget {
   final int? litterId;
+  final int? initialSireId;
+  final int? initialDamId;
+  final DateTime? initialMatingDate;
 
-  const LitterFormScreen({super.key, this.litterId});
+  const LitterFormScreen({
+    super.key,
+    this.litterId,
+    this.initialSireId,
+    this.initialDamId,
+    this.initialMatingDate,
+  });
 
   @override
   ConsumerState<LitterFormScreen> createState() => _LitterFormScreenState();
@@ -44,6 +53,13 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
     super.initState();
     if (_isEditMode) {
       _loadLitter();
+    } else {
+      _selectedSireId = widget.initialSireId;
+      _selectedDamId = widget.initialDamId;
+      _matingDate = widget.initialMatingDate;
+      if (_matingDate != null) {
+        _matingDateController.text = DateFormat('yyyy-MM-dd').format(_matingDate!);
+      }
     }
   }
 
@@ -325,6 +341,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
 
   Widget _buildSireDropdown(List<Dog> sires) {
     return DropdownButtonFormField<int>(
+      key: ValueKey('sire_$_selectedSireId'),
       initialValue: _selectedSireId,
       decoration: const InputDecoration(
         labelText: 'Sire (Male)',
@@ -352,6 +369,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
 
   Widget _buildDamDropdown(List<Dog> dams) {
     return DropdownButtonFormField<int>(
+      key: ValueKey('dam_$_selectedDamId'),
       initialValue: _selectedDamId,
       decoration: const InputDecoration(
         labelText: 'Dam (Female)',
@@ -389,7 +407,7 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
       onTap: () async {
         final date = await showDatePicker(
           context: context,
-          initialDate: DateTime.now(),
+          initialDate: _matingDate ?? DateTime.now(),
           firstDate: DateTime(2000),
           lastDate: DateTime.now(),
         );
@@ -626,6 +644,8 @@ class _LitterFormScreenState extends ConsumerState<LitterFormScreen> {
 
       if (mounted) {
         ref.invalidate(dogsProvider);
+        ref.invalidate(dogLittersProvider);
+        ref.invalidate(dogOffspringProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(_isEditMode ? 'Litter updated successfully' : 'Litter registered successfully')),
         );

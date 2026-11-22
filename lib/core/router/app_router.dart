@@ -91,7 +91,12 @@ class AppRouter {
       GoRoute(
         path: '/litter/new',
         builder: (BuildContext context, GoRouterState state) {
-          return const LitterFormScreen();
+          final extra = state.extra as Map<String, dynamic>?;
+          return LitterFormScreen(
+            initialSireId: extra?['sireId'] as int?,
+            initialDamId: extra?['damId'] as int?,
+            initialMatingDate: extra?['matingDate'] as DateTime?,
+          );
         },
       ),
       GoRoute(

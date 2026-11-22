@@ -16,7 +16,7 @@
 
 <p align="center">
   <b>Package:</b> <code>com.zooped.niiabe</code> &nbsp;|&nbsp;
-  <b>Version:</b> 1.13.0+29 &nbsp;|&nbsp;
+  <b>Version:</b> 1.14.0+30 &nbsp;|&nbsp;
   <b>License:</b> Private
 </p>
 

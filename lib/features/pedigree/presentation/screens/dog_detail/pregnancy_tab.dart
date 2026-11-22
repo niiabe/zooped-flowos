@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/delete_confirm_dialog.dart';
 import '../../../domain/entities/dog.dart';
 import '../../../domain/entities/litter.dart';
@@ -20,8 +19,6 @@ class PregnancyTab extends ConsumerStatefulWidget {
 class _PregnancyTabState extends ConsumerState<PregnancyTab> {
   @override
   Widget build(BuildContext context) {
-    final padding = 16.0;
-
     return Column(
       children: [
         Padding(
@@ -162,7 +159,7 @@ class _PregnancyTabState extends ConsumerState<PregnancyTab> {
                   const Divider(),
                   _buildInfoRow('Whelped Date', DateFormat('MMM d, yyyy').format(litter.whelpingDate)),
                   _buildInfoRow('Puppies Born', '${litter.puppiesBornAlive}'),
-                  if (litter.puppiesStillborn != null && litter.puppiesStillborn! > 0)
+                  if (litter.puppiesStillborn > 0)
                     _buildInfoRow('Stillborn', '${litter.puppiesStillborn}'),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -269,7 +266,7 @@ class _PregnancyTabState extends ConsumerState<PregnancyTab> {
                           labelText: 'Partner',
                           border: OutlineInputBorder(),
                         ),
-                        value: selectedPartnerId,
+                        initialValue: selectedPartnerId,
                         items: partners.map((d) => DropdownMenuItem(
                           value: d.id,
                           child: Text('${d.callName} (${d.registeredName})'),
@@ -318,16 +315,17 @@ class _PregnancyTabState extends ConsumerState<PregnancyTab> {
     );
   }
 
-  void _showLogWhelpDialog(Map<String, dynamic> mating) {
+  Future<void> _showLogWhelpDialog(Map<String, dynamic> mating) async {
     // Navigate to litter form with pre-filled mating data
     final matingDate = mating['matingDate'] as DateTime;
     final partner = mating['partner'] as Dog?;
 
-    context.push('/litter/new', extra: {
+    await context.push('/litter/new', extra: {
       'sireId': widget.dog.sex == 'Male' ? widget.dog.id : partner?.id,
       'damId': widget.dog.sex == 'Female' ? widget.dog.id : partner?.id,
       'matingDate': matingDate,
     });
+    if (mounted) ref.invalidate(_matingsProvider(widget.dog.id));
   }
 
   Future<void> _deleteMating(int matingId) async {
@@ -337,13 +335,13 @@ class _PregnancyTabState extends ConsumerState<PregnancyTab> {
       message: 'Are you sure you want to delete this mating record?',
     );
 
-    if (confirmed && context.mounted) {
+    if (confirmed && mounted) {
       try {
         final repo = ref.read(pedigreeRepositoryProvider);
         await repo.deleteMating(matingId);
         ref.invalidate(_matingsProvider(widget.dog.id));
       } catch (e) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error deleting mating: $e')),
           );

@@ -5,6 +5,18 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0+30] - 2026-11-22
+
+### Added
+- **Edit Litter from Parent Dog:** Litters & Offspring tab on a parent dog's profile now has an "Edit Litter" button alongside "Delete Litter", opening the same edit form used in View Litters.
+
+### Fixed
+- **Log Whelping Pre-fill:** Tapping "Log Whelping" in the Pregnancy tab now opens the Register Litter form with the sire, dam, and mating date already filled in (the route previously ignored the passed data).
+- **Edit Litter Parents Not Showing:** Sire/Dam dropdowns in the litter edit form now reliably display the loaded parents.
+- **Stale Litter Lists:** Saving a litter now refreshes the parent dogs' Litters & Offspring tabs, and returning from Log Whelping refreshes the Pregnancy tab so the mating shows as Whelped.
+- **Mating Date Picker:** Opens on the currently selected mating date instead of today.
+- **Pregnancy Tab Cleanup:** Removed unused code and fixed context/async and deprecated-API analyzer warnings.
+
 ## [1.13.0+29] - 2026-08-08
 
 ### Added
