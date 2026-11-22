@@ -117,7 +117,7 @@ jobs:
           # Compare the APK's signing cert against the keystore's certificate so a
           # wrong/mismatched key (which would block in-app updates) fails the build.
           APK_SHA=$("$APKSIGNER" verify --print-certs "$APK" \
-            | grep -i 'SHA-256' | head -n1 | awk -F': ' '{print $2}' | tr 'A-F' 'a-f' | tr -d ' ')
+            | grep -i 'certificate SHA-256' | head -n1 | awk -F': ' '{print $NF}' | tr 'A-F' 'a-f' | tr -d ' ')
           KEY_SHA=$(keytool -list -v \
             -keystore android/app/upload-keystore.jks \
             -alias "${{ secrets.KEY_ALIAS }}" \
