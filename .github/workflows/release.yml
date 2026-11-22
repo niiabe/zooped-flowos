@@ -132,13 +132,29 @@ jobs:
           fi
           echo "APK signature verified against the release keystore."
 
+      - name: Extract release notes from CHANGELOG
+        if: ${{ github.ref_type == 'tag' || inputs.publish }}
+        run: |
+          # Section under "## [<full pubspec version>]" up to the next "## [" heading.
+          FULL=$(grep '^version:' pubspec.yaml | awk '{print $2}' | tr -d '\r')
+          awk -v h="## [${FULL}]" '
+            index($0, h) == 1 { f = 1; next }
+            f && /^## \[/ { exit }
+            f { print }
+          ' CHANGELOG.md | tr -d '\r' > release_notes.md
+          if ! grep -q '[^[:space:]]' release_notes.md; then
+            echo "::error::No CHANGELOG.md entry found for [${FULL}]. Add one before releasing."
+            exit 1
+          fi
+          cat release_notes.md
+
       - name: Create GitHub Release
         if: ${{ github.ref_type == 'tag' || inputs.publish }}
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ steps.version.outputs.tag }}
           tag_name: ${{ steps.version.outputs.tag }}
-          generate_release_notes: true
+          body_path: release_notes.md
           files: ${{ steps.apk.outputs.path }}
 
       - name: Upload APK artifact
