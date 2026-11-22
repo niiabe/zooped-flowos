@@ -5,6 +5,14 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1+31] - 2026-11-22
+
+### Changed
+- **Home Dog List Shows Only Your Dogs:** Dogs marked "Not Owned" (e.g. ancestors added from a pedigree) no longer appear in the home screen list. They remain in pedigrees, litter parent pickers, and matchmaking, and can still be found via search.
+
+### Fixed
+- **Automated Releases:** CI release workflow now accepts tags with build numbers (e.g. v1.14.1+31) and correctly verifies the APK signing certificate, so releases are built and published automatically.
+
 ## [1.14.0+30] - 2026-11-22
 
 ### Added
