@@ -30,9 +30,13 @@ final dogsProvider = StreamProvider.autoDispose<List<Dog>>((ref) async* {
   }
 
   if (query.isNotEmpty) {
+    // Search still finds pedigree-only ("Not Owned") dogs so they can be opened/edited.
     yield await repo.searchDogs(query);
   } else {
-    yield* repo.watchFilteredDogs(sex: filter.sex, sortBy: filter.sortBy);
+    // Home list shows only the kennel's own dogs; "Not Owned" dogs exist for pedigrees.
+    yield* repo
+        .watchFilteredDogs(sex: filter.sex, sortBy: filter.sortBy)
+        .map((dogs) => dogs.where((d) => d.saleStatus != 'Not Owned').toList());
   }
 });
 
