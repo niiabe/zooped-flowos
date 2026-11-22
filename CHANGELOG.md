@@ -5,6 +5,14 @@ All notable changes to ZooPed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.2+32] - 2026-11-22
+
+### Fixed
+- **"Package Invalid" on Update:** v1.14.1+31 was published as a single universal APK whose internal version code (31) was lower than the per-device APKs already installed (e.g. 2030), so Android rejected it. Releases are now built as per-device (split ABI) APKs again, so updates install normally.
+
+### Changed
+- **Smaller Updates:** Each release now ships one APK per device type (~30-35 MB) instead of a ~91 MB universal APK; the app downloads the one matching your phone.
+
 ## [1.14.1+31] - 2026-11-22
 
 ### Changed
