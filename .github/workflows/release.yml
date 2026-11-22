@@ -95,42 +95,36 @@ jobs:
       - name: Generate code (build_runner)
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
-      - name: Build release APK
-        run: flutter build apk --release
+      - name: Build release APKs (split per ABI)
+        run: flutter build apk --release --split-per-abi
 
-      - name: Rename APK
-        id: apk
+      - name: Rename APKs
         run: |
           mkdir -p dist
-          APK="dist/ZooPed_${{ steps.version.outputs.tag }}.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk "$APK"
-          echo "path=${APK}" >> "$GITHUB_OUTPUT"
+          # e.g. ZooPed_v1.14.2+32_arm64-v8a.apk - the in-app updater picks the
+          # asset whose name contains the device ABI.
+          for ABI in arm64-v8a armeabi-v7a x86_64; do
+            cp "build/app/outputs/flutter-apk/app-${ABI}-release.apk"                "dist/ZooPed_${{ steps.version.outputs.tag }}_${ABI}.apk"
+          done
+          ls -la dist
 
-      - name: Verify APK signature
+      - name: Verify APK signatures
         run: |
-          APK="${{ steps.apk.outputs.path }}"
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -Vr | head -n1)
           echo "Using: $APKSIGNER"
-          # Confirm the APK is validly signed and print the signing certificate.
-          "$APKSIGNER" verify --verbose --print-certs "$APK"
-
-          # Compare the APK's signing cert against the keystore's certificate so a
-          # wrong/mismatched key (which would block in-app updates) fails the build.
-          APK_SHA=$("$APKSIGNER" verify --print-certs "$APK" \
-            | grep -i 'certificate SHA-256' | head -n1 | awk -F': ' '{print $NF}' | tr 'A-F' 'a-f' | tr -d ' ')
-          KEY_SHA=$(keytool -list -v \
-            -keystore android/app/upload-keystore.jks \
-            -alias "${{ secrets.KEY_ALIAS }}" \
-            -storepass "${{ secrets.STORE_PASSWORD }}" \
-            | grep -i 'SHA256:' | head -n1 | awk -F'SHA256: ' '{print $2}' \
-            | tr 'A-F' 'a-f' | tr -d ': ')
-          echo "APK cert SHA-256:      $APK_SHA"
+          # Keystore certificate, to compare each APK against so a wrong or
+          # mismatched key (which would block in-app updates) fails the build.
+          KEY_SHA=$(keytool -list -v             -keystore android/app/upload-keystore.jks             -alias "${{ secrets.KEY_ALIAS }}"             -storepass "${{ secrets.STORE_PASSWORD }}"             | grep -i 'SHA256:' | head -n1 | awk -F'SHA256: ' '{print $2}'             | tr 'A-F' 'a-f' | tr -d ': ')
           echo "Keystore cert SHA-256: $KEY_SHA"
-          if [ -z "$APK_SHA" ] || [ "$APK_SHA" != "$KEY_SHA" ]; then
-            echo "::error::APK signing certificate does not match the release keystore."
-            exit 1
-          fi
-          echo "APK signature verified against the release keystore."
+          for APK in dist/*.apk; do
+            APK_SHA=$("$APKSIGNER" verify --print-certs "$APK"               | grep -i 'certificate SHA-256' | head -n1 | awk -F': ' '{print $NF}' | tr 'A-F' 'a-f' | tr -d ' ')
+            echo "$APK cert SHA-256: $APK_SHA"
+            if [ -z "$APK_SHA" ] || [ "$APK_SHA" != "$KEY_SHA" ]; then
+              echo "::error::$APK signing certificate does not match the release keystore."
+              exit 1
+            fi
+          done
+          echo "All APK signatures verified against the release keystore."
 
       - name: Extract release notes from CHANGELOG
         if: ${{ github.ref_type == 'tag' || inputs.publish }}
@@ -155,11 +149,11 @@ jobs:
           name: ${{ steps.version.outputs.tag }}
           tag_name: ${{ steps.version.outputs.tag }}
           body_path: release_notes.md
-          files: ${{ steps.apk.outputs.path }}
+          files: dist/*.apk
 
       - name: Upload APK artifact
         if: ${{ github.ref_type != 'tag' && !inputs.publish }}
         uses: actions/upload-artifact@v4
         with:
           name: zooped-apk
-          path: ${{ steps.apk.outputs.path }}
+          path: dist/*.apk
